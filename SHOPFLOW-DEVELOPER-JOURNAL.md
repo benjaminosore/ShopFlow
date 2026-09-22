@@ -136,5 +136,26 @@ How the application is deployed
 
 Version Control: 
 Git was initialized for the ShopFlow project, and the default branch was set to main. Git will be used to track development progress, feature changes, and project milestones.
+
 Commit: docs: add ShopFlow developer journal
 Purpose: Created the initial developer journal containing the ShopFlow project vision, architecture, development approach, technology choices, and interview goals.
+
+Git Best Practice: 
+A .gitignore file will be used to prevent dependencies, environment files, secrets, generated files, and other unnecessary files from being committed to the repository.
+
+`.gitignore` Verification
+
+The ShopFlow `.gitignore` was configured for the React + Node.js project.
+
+The ignore rules were tested using Git:
+
+`.env` is ignored to protect environment variables and database credentials.
+`node_modules/` is ignored to prevent installed dependencies from being committed.
+Build files, logs, coverage files, IDE files, and operating-system files are also excluded.
+
+Verification commands:
+`git check-ignore -v .env`
+`git check-ignore -v node_modules/`
+
+Both tests confirmed that Git is correctly applying the `.gitignore` rules.
+
