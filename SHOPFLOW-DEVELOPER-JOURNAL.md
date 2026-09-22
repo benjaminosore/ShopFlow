@@ -136,3 +136,5 @@ How the application is deployed
 
 Version Control: 
 Git was initialized for the ShopFlow project, and the default branch was set to main. Git will be used to track development progress, feature changes, and project milestones.
+Commit: docs: add ShopFlow developer journal
+Purpose: Created the initial developer journal containing the ShopFlow project vision, architecture, development approach, technology choices, and interview goals.
