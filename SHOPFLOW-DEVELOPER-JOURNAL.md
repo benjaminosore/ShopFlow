@@ -159,3 +159,425 @@ Verification commands:
 
 Both tests confirmed that Git is correctly applying the `.gitignore` rules.
 
+Second Commit
+
+Commit:`chore: add project gitignore`
+
+Purpose: Added project-specific Git ignore rules and updated the developer journal with the Git setup and verification details.
+
+GitHub Repository
+
+The local ShopFlow Git repository was connected to the public GitHub repository:
+
+`https://github.com/benjaminosore/ShopFlow`
+
+The local `main` branch was pushed successfully to GitHub and configured to track `origin/main`.
+
+Result:The ShopFlow project is now backed up remotely and ready for collaborative, version-controlled development.
+
+Initial commits:
+
+`47b9650` — `docs: add ShopFlow developer journal`
+`ed881fc` — `chore: add project gitignore`
+
+Day 2 — Backend Setup
+Backend Initialization: The ShopFlow backend was initialized as a Node.js project using npm init -y. This created package.json, which will manage backend metadata, scripts, and dependencies.
+
+Module System Decision
+
+ShopFlow will use ES Modules (ESM)for the Node.js backend instead of CommonJS.
+
+CommonJS:
+`const express = require("express");`
+
+ES Modules:
+`import express from "express";`
+
+The `package.json` configuration was changed from:
+
+`"type": "commonjs"`
+
+to:
+
+`"type": "module"`
+
+Why ESM was selected:
+
+It is the standardized JavaScript module system.
+It uses modern `import` and `export` syntax.
+It keeps the backend module syntax consistent with modern React development.
+It supports the modular architecture planned for ShopFlow.
+ Understanding ESM also helps the developer understand modern Node.js projects.
+
+Interview takeaway: The developer should be able to explain the difference between CommonJS and ES Modules and why ESM was selected for ShopFlow.
+
+Backend Dependencies
+
+The ShopFlow backend was initialized with the following Node.js packages:
+
+Express 5.2.1— REST API and HTTP server framework.
+CORS 2.8.6 — controls cross-origin communication between the frontend and backend.
+dotenv 18.0.2 — loads configuration and secrets from environment variables.
+mysql2 3.24.4— provides MySQL connectivity for the Node.js backend.
+
+The installation completed successfully with 0 vulnerabilities reported by npm.
+
+`package.json` and `package-lock.json` now record the project's backend dependencies and their versions.
+
+Backend Architecture
+
+ShopFlow will use a modular backend architecture based on Node.js and Express.js.
+
+The backend will separate responsibilities into:
+
+ `config/` — application and database configuration
+`controllers/` — request and response handling
+`middleware/` — authentication, validation, and error handling
+`models/` — database-related logic
+ `routes/` — REST API endpoint definitions
+ `services/` — business logic
+`app.js` — main Express application
+
+This structure is intended to improve maintainability, readability, testing, and scalability.
+
+Interview takeaway: The developer should be able to explain why backend responsibilities are separated instead of placing all application logic inside a single file.
+app.js is the main entry point of the ShopFlow Express backend. It will configure the application, middleware, API routes, and error handling.
+
+First Backend Code:
+app.js is the central Express application file. The application will be built incrementally, starting with the Express server configuration and then adding middleware, routes, database connectivity, and error handling.
+
+First Express Import
+
+ShopFlow uses the ES Module syntax to import Express:
+
+javascript
+import express from "express";
+
+
+This makes the Express framework available to the ShopFlow backend so we can create and configure the HTTP server.
+
+Interview takeaway: Because ShopFlow uses `"type": "module"` in `package.json`, backend files use modern `import` and `export` syntax.
+
+const app = express(); creates the ShopFlow Express application instance. The app object will be used to configure middleware, routes, error handling, and other backend behavior.
+
+JSON Middleware
+
+ShopFlow uses Express JSON middleware:
+
+javascript
+app.use(express.json());
+
+
+This allows the Express backend to parse incoming JSON request bodies.
+
+For example, when the React frontend sends customer registration data as JSON, Express can make that data available through `req.body`.
+
+Interview takeaway: `express.json()` allows Express to parse JSON request bodies sent to the API.
+
+Initial Express Application
+
+The ShopFlow Express application was configured with:
+
+CORS middleware for communication between the React frontend and backend.
+JSON middleware for parsing JSON request bodies.
+A `GET /api/health` endpoint for checking API availability.
+An ES Module export so the Express application can be imported by the server entry point.
+
+The health-check endpoint returns a JSON response confirming that the ShopFlow API is running.
+
+Interview takeaway: A health-check endpoint provides a simple way to verify that the backend service is running and responding to HTTP requests.
+
+Server Entry Point
+
+ShopFlow separates the Express application configuration from server startup.
+
+`app.js` configures the Express application, middleware, and routes.
+`server.js` imports the application and starts the HTTP server.
+The development server uses port `5000`.
+
+This separation makes the backend easier to maintain and test.
+
+Architecture:
+
+`server.js → app.js → Express → REST API`
+
+Interview takeaway: Separating application configuration from server startup allows the Express app to be reused independently, which is useful for testing and maintainability.
+
+First Working API
+
+ShopFlow's backend was successfully started using Node.js and Express.
+
+The first API endpoint created was:
+
+`GET /api/health`
+
+The endpoint returns a JSON response confirming that the API is running.
+
+Request:
+`GET http://localhost:5000/api/health`
+
+Expected response:
+
+json
+{
+  "status": "success",
+  "message": "ShopFlow API is running"
+}
+
+
+This confirmed that the Node.js server, Express application, middleware, routing, and JSON response handling are working correctly.
+
+Interview takeaway: A health-check endpoint can be used to verify that an API service is available and responding correctly.
+
+Database Technology: ShopFlow uses MySQL as its relational database. The Node.js backend will communicate with MySQL using the mysql2 package.
+
+Database Environment: ShopFlow uses MariaDB 10.4.32 provided by XAMPP for local development. The Node.js backend connects to the database through the mysql2 package.
+
+ShopFlow Database
+
+A dedicated MariaDB database named `shopflow` was created for the project.
+
+The database will contain the relational data required by ShopFlow, including users, categories, products, orders, order items, inventory-related information, and reporting data.
+
+The database is running locally through the XAMPP MariaDB environment.
+
+Interview takeaway: ShopFlow uses a dedicated relational database to keep application data organized and isolated from other projects.
+
+Database Selection: The shopflow database was selected as the active database using USE shopflow;. All subsequent ShopFlow schema operations will be performed within this database.
+
+Database Schema Design
+
+ShopFlow's initial relational database design consists of five core tables:
+
+1. users — stores customer and administrator accounts.
+2. categories — stores product categories.
+3. products — stores products, pricing, inventory, and category relationships.
+4. orders — stores customer orders and their status.
+5. order_items — stores the individual products and quantities belonging to each order.
+
+Core Relationships
+
+One user can have many orders.
+One order can contain many order items.
+One product can appear in many order items.
+One category can contain many products.
+
+Primary keys and foreign keys will enforce these relationships.
+
+The schema will also use appropriate constraints, indexes, timestamps, and controlled values to maintain data integrity.
+
+Interview takeaway: `order_items` acts as the junction/detail table between orders and products, allowing one order to contain multiple products while preserving quantity and purchase price.
+
+Categories Table
+
+The first ShopFlow database table created was `categories`.
+
+The table contains:
+
+A unique auto-incrementing primary key.
+A unique category name.
+An optional description.
+Creation and update timestamps.
+
+The `UNIQUE` constraint on the category name prevents duplicate category names.
+
+This table will later be referenced by the `products` table through a foreign key relationship.
+
+Interview takeaway: Database constraints such as primary keys, `NOT NULL`, and `UNIQUE` help maintain data integrity at the database level rather than relying entirely on application code.
+
+Database Schema Management
+
+ShopFlow database definitions will be maintained in SQL files rather than being entered manually through the MariaDB interactive terminal.
+
+The main schema will be stored in:
+
+`database/schema.sql`
+
+This approach makes the database structure:
+
+Reusable
+Version-controlled
+Easier to review
+Easier to recreate
+Less prone to manual typing errors
+
+A separate `seed.sql` file may later be used for development/test data.
+
+Core E-commerce Tables
+
+The ShopFlow schema was extended with three core tables:
+
+ `products` — stores product information, pricing, inventory, images, and category relationships.
+`orders` — stores customer orders, order status, totals, and timestamps.
+`order_items` — stores the individual products contained in each order, including quantity and the price at the time of purchase.
+
+Database Design Decisions
+
+ `DECIMAL(10,2)` is used for monetary values.
+Foreign keys enforce relationships between related tables.
+Indexes are added to frequently queried relationship and filtering columns.
+`ON DELETE RESTRICT` protects important historical records from accidental deletion.
+`ON DELETE CASCADE` allows order items to be removed automatically when their parent order is deleted.
+`unit_price` is stored in `order_items` so historical orders preserve the price paid at the time of purchase.
+
+Interview takeaway: A well-designed relational database doesn't only store data; constraints, indexes, and relationships help enforce business rules and data integrity.
+
+Database Schema Implementation
+
+The ShopFlow database schema was successfully executed against the local `shopflow` MariaDB database.
+
+The following five core tables were created and verified:
+
+ `users` — customer and administrator accounts
+`categories` — product categories
+ `products` — product catalog and inventory
+`orders` — customer orders and order status
+`order_items` — individual products belonging to orders
+
+The schema was executed from the version-controlled `database/schema.sql` file instead of entering each table definition manually in the MariaDB terminal.
+
+Verification using `SHOW TABLES;` confirmed that all five tables exist.
+
+Development lesson:
+Maintaining database structure in SQL files makes the database easier to reproduce, version-control, review, and maintain across development environments.
+
+Interview takeaway:
+ShopFlow's database is built around relational data modeling with primary keys, foreign keys, constraints, indexes, and appropriate data types for e-commerce data.
+
+Database Structure Verification
+
+After executing `database/schema.sql`, the structure of all five ShopFlow tables was inspected using MariaDB `DESCRIBE` commands.
+
+The verification confirmed that:
+
+All primary keys use auto-incrementing unsigned integers.
+User email addresses are uniquely constrained.
+User roles are restricted to `customer` and `admin`.
+Passwords are represented by a `password_hash` field rather than plain-text passwords.
+Products contain category references, pricing, inventory quantities, and optional image URLs.
+Product prices and order amounts use `DECIMAL(10,2)` for monetary values.
+Orders are associated with users and have controlled order statuses.
+Order items connect orders to products and store quantity and unit price.
+Foreign-key columns have indexes for efficient relational queries.
+Created and updated timestamps are automatically maintained.
+
+No schema corrections were required after verification.
+
+Development lesson:
+Database design should be verified after schema creation rather than assuming that a successful SQL execution means the structure is correct.
+
+Interview takeaway:
+ShopFlow demonstrates relational database modeling, normalization, constraints, indexing, foreign-key relationships, controlled values, and appropriate data types for e-commerce transactions.
+
+Environment Configuration
+
+ShopFlow uses environment variables to store application and database configuration separately from the source code.
+
+The backend environment variables include:
+
+`PORT` — Node.js server port
+`DB_HOST` — database server host
+`DB_PORT` — MariaDB port
+`DB_USER` — database username
+`DB_PASSWORD` — database password
+`DB_NAME` — ShopFlow database name
+
+The `.env` file is excluded from Git using `.gitignore` so local configuration and credentials are not committed to the public repository.
+
+Development lesson:
+Environment variables make applications easier to configure across development, testing, and production environments while reducing the risk of exposing sensitive configuration.
+
+Interview takeaway:
+Production applications should not hardcode database credentials or secrets directly in source code.
+
+MariaDB Connection Pool
+
+ShopFlow connects to MariaDB using the `mysql2` package and a connection pool.
+
+The database configuration is stored in environment variables and loaded using `dotenv`.
+
+The connection pool is configured with:
+
+Database host
+Database port
+Database username
+Database password
+Database name
+Connection pooling
+Maximum connection limit
+Connection queueing
+
+ShopFlow uses `mysql2/promise` so database operations can use JavaScript `async/await`.
+
+Development lesson:
+A connection pool allows the application to reuse database connections instead of creating a new connection for every request.
+
+Interview takeaway:
+The backend separates database configuration from application code and uses connection pooling to manage database access efficiently.
+
+Node.js Database Connection Test
+
+A database connection test was created using `mysql2/promise` and the ShopFlow database connection pool.
+
+The test executed the query:
+
+`SELECT DATABASE() AS database_name`
+
+The result confirmed:
+
+Node.js successfully loaded the environment configuration.
+`dotenv` successfully loaded the database variables.
+`mysql2` successfully established a connection.
+The backend successfully communicated with MariaDB.
+The active database was confirmed as `shopflow`.
+
+Result:
+
+`Database connection successful!`
+
+`Connected database: shopflow`
+
+Development lesson:
+Testing the database connection independently helps identify configuration or connectivity problems before building application features on top of the database.
+
+Interview takeaway:
+ShopFlow's Node.js backend has a working database layer using environment configuration and a reusable MariaDB connection pool.
+
+Database Integrated with Express API
+
+The ShopFlow MariaDB database was successfully integrated into the Express backend.
+
+The `/api/health` endpoint was refactored into a modular route and controller structure:
+
+`healthRoutes.js → healthController.js → database.js → MariaDB`
+
+The endpoint successfully returned:
+
+API status: `success`
+API message: `ShopFlow API is running`
+Database status: `connected`
+Database name: `shopflow`
+
+This confirms that the Express application can successfully communicate with the ShopFlow MariaDB database through the `mysql2` connection pool.
+
+Development lesson:
+Separating routes, controllers, and database configuration creates a modular backend structure that is easier to maintain and extend.
+
+Interview takeaway:
+ShopFlow now has a working Express REST API connected to a relational MariaDB database through a reusable connection pool.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
