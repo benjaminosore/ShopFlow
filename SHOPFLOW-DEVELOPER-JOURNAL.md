@@ -566,6 +566,58 @@ Separating routes, controllers, and database configuration creates a modular bac
 Interview takeaway:
 ShopFlow now has a working Express REST API connected to a relational MariaDB database through a reusable connection pool.
 
+Categories REST API
+
+The Categories API was implemented as the first complete CRUD resource in ShopFlow.
+
+Endpoints
+
+| Method | Endpoint | Purpose |
+GET | `/api/categories` | Retrieve all categories |
+GET | `/api/categories/:id` | Retrieve one category |POST | `/api/categories` /Create a category/
+PUT | `/api/categories/:id` | Update a category |
+DELETE | `/api/categories/:id` | Delete a category |
+
+Architecture
+
+The implementation follows the ShopFlow backend structure:
+
+`Route → Controller → Model → Database`
+
+- Routes-define the HTTP endpoints.
+- Controllers-validate requests and return HTTP responses.
+- Models- handle database operations.
+- MariaDB-stores the category records.
+
+Validation and Error Handling
+
+The API validates that a category name is provided before creating or updating a category.
+
+The API also handles:
+
+`400 Bad Request` — missing category name
+`404 Not Found` — category does not exist
+`409 Conflict` — duplicate category name
+`500 Internal Server Error` — unexpected server/database failure
+
+Database queries use parameterized placeholders (`?`) instead of directly inserting user input into SQL statements.
+
+Testing
+
+The Categories API was tested using `curl` from Git Bash.
+
+The following operations were successfully verified:
+
+1. Created an `Electronics` category.
+2. Retrieved all categories.
+3. Retrieved a category by ID.
+4. Updated the category to `Home Appliances`.
+5. Retrieved the updated category and confirmed the database timestamp changed.
+6. Deleted the category.
+7. Retrieved all categories again and confirmed the result was empty.
+
+This completed the first full CRUD resource for the ShopFlow REST API.
+
 
 
 
