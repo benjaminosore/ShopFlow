@@ -618,6 +618,83 @@ The following operations were successfully verified:
 
 This completed the first full CRUD resource for the ShopFlow REST API.
 
+Products REST API
+
+After completing the Categories API, the next backend feature was the Products REST API. This provides CRUD operations for managing products while maintaining the relationship between products and categories.
+
+Product API Endpoints
+
+| Method | Endpoint            | Purpose               |
+| ------ | ------------------- | --------------------- |
+| GET    | `/api/products`     | Retrieve all products |
+| GET    | `/api/products/:id` | Retrieve one product  |
+| POST   | `/api/products`     | Create a product      |
+| PUT    | `/api/products/:id` | Update a product      |
+| DELETE | `/api/products/:id` | Delete a product      |
+
+Product–Category Relationship
+
+Products belong to categories through the `category_id` foreign key.
+
+The API uses an `INNER JOIN` when retrieving products so that the response includes both the product's `category_id` and the corresponding `category_name`.
+
+This keeps the database normalized while allowing the frontend to receive useful product and category information from a single API response.
+
+Validation
+
+The Products API validates:
+
+`category_id` must be a valid positive integer.
+Product name is required.
+Product price must be a valid non-negative number.
+Stock quantity must be a non-negative integer.
+The referenced category must exist before a product can be created or updated.
+
+Error Handling
+
+The API returns appropriate HTTP status codes for common situations:
+
+`201` — Product created successfully.
+`200` — Successful retrieval, update, or deletion.
+`400` — Invalid product data or missing category.
+`404` — Product not found.
+`409` — Product cannot be deleted because it is referenced by an order.
+`500` — Unexpected server/database error.
+
+### Testing
+
+The Products API was tested using `curl`.
+
+The following operations were verified successfully:
+
+1. Create a category.
+2. Create a product under that category.
+3. Retrieve all products.
+4. Retrieve a single product by ID.
+5. Update the product.
+6. Verify the updated product data.
+7. Delete the product.
+8. Confirm that the products list was empty after deletion.
+
+The API returned JSON responses successfully and retrieved product data together with its category name.
+
+Key Concepts Learned
+
+The Products API reinforced several backend development concepts:
+
+RESTful CRUD operations.
+Express route handling.
+Controller/model separation.
+MySQL/MariaDB foreign-key relationships.
+SQL `INNER JOIN`.
+Request validation.
+HTTP status codes.
+JSON API responses.
+Database error handling.
+Testing APIs independently before connecting the frontend.
+
+This establishes the backend foundation required for the React frontend to consume product and category data later in the project.
+
 
 
 
