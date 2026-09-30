@@ -695,6 +695,201 @@ Testing APIs independently before connecting the frontend.
 
 This establishes the backend foundation required for the React frontend to consume product and category data later in the project.
 
+Orders REST API
+
+After completing the Categories and Products APIs, the next backend feature was the Orders REST API.
+
+The Orders API manages the complete lifecycle of customer orders, including creating orders, retrieving orders, updating order status, and deleting orders.
+
+Order API Endpoints
+
+| Method | Endpoint          | Purpose                           |
+| ------ | ----------------- | --------------------------------- |
+| GET    | `/api/orders`     | Retrieve all orders               |
+| GET    | `/api/orders/:id` | Retrieve one order with its items |
+| POST   | `/api/orders`     | Create a new order                |
+| PUT    | `/api/orders/:id` | Update order status               |
+| DELETE | `/api/orders/:id` | Delete an order                   |
+
+Order and Order Item Relationship
+
+An order belongs to a user through the `user_id` foreign key.
+
+Each order can contain multiple products through the `order_items` table.
+
+The relationship is:
+
+```text
+User
+  ↓
+Order
+  ↓
+Order Items
+  ↓
+Products
+```
+
+The `order_items` table stores the quantity and purchase-time unit price for each product.
+
+Order Creation Flow
+
+Creating an order follows a transaction-based workflow:
+
+```text
+Request
+   ↓
+Validate user
+   ↓
+Validate order items
+   ↓
+Check products
+   ↓
+Check stock
+   ↓
+BEGIN TRANSACTION
+   ↓
+Create order
+   ↓
+Create order items
+   ↓
+Reduce product stock
+   ↓
+COMMIT
+```
+
+If an error occurs during the transaction, the database changes are rolled back.
+
+This prevents situations where an order could be created without its order items or where stock could be reduced without a corresponding order.
+
+Database Transactions
+
+The Orders API uses a MySQL/MariaDB transaction when creating an order.
+
+The implementation uses:
+
+`beginTransaction()` to start the transaction.
+`commit()` to permanently save the changes.
+`rollback()` to undo changes if an error occurs.
+`release()` to return the database connection to the connection pool.
+
+This ensures that order creation and inventory updates remain consistent.
+
+Stock Validation
+
+Before creating an order, the API checks whether enough stock exists for every requested product.
+
+Product rows are queried using `FOR UPDATE` during the transaction.
+
+This helps protect stock values when multiple order requests are processed at the same time.
+
+After the order items are created, the corresponding product stock is reduced by the ordered quantity.
+
+Purchase-Time Price
+
+The `order_items.unit_price` column stores the product price at the time the order is placed.
+
+For example, if a product costs KSh 1,500 when an order is created, the order item stores:
+
+```text
+unit_price = 1500.00
+```
+
+If the product price later changes, the historical order still retains the original purchase price.
+
+This prevents changes to the current product price from altering historical order information.
+
+Order Status
+
+Orders use the following statuses:
+
+`pending`
+`processing`
+`shipped`
+`completed`
+`cancelled`
+
+The API validates the requested status before updating an order.
+
+Validation and Error Handling
+
+The Orders API validates:
+
+`user_id` must be a valid positive integer.
+An order must contain at least one item.
+Each `product_id` must be valid.
+Each quantity must be a positive integer.
+The requested user must exist.
+The requested product must exist.
+Sufficient stock must be available.
+Order status must be one of the supported values.
+
+The API returns appropriate HTTP status codes including:
+
+`201` — Order created successfully.
+`200` — Successful retrieval or update.
+`400` — Invalid request data.
+`404` — User, product, or order not found.
+`409` — Insufficient product stock.
+`500` — Unexpected server or database error.
+
+Testing
+
+The Orders API was tested using `curl`.
+
+The following operations were successfully verified:
+
+1. Retrieve orders before an order existed.
+2. Create an order for the test customer.
+3. Add a wireless mouse to the order.
+4. Verify the order total.
+5. Verify the order item and purchase-time price.
+6. Verify that product stock decreased from 20 to 18.
+7. Retrieve the individual order.
+8. Update the order status from `pending` to `processing`.
+9. Retrieve the order again and verify the updated status.
+10. Verify the order and order item records directly in MariaDB.
+
+Test Order
+
+The successful development test created:
+
+```text
+Order ID:       1
+Customer:       Test Customer
+Product:        Test Wireless Mouse
+Quantity:       2
+Unit Price:     KSh 1,500
+Order Total:    KSh 3,000
+Initial Stock:  20
+Remaining Stock: 18
+Final Status:   processing
+```
+
+This confirmed that the Orders API can connect customer data, order data, order items, product pricing, and inventory management in a single backend workflow.
+
+Key Concepts Learned
+
+The Orders API reinforced several important backend engineering concepts:
+
+RESTful API design.
+Express route handling.
+Controller/model separation.
+Relational database design.
+Foreign-key relationships.
+Database transactions.
+Commit and rollback operations.
+Connection pooling.
+Row locking with `FOR UPDATE`.
+Inventory management.
+Historical price preservation.
+Request validation.
+HTTP status codes.
+API testing with `curl`.
+Maintaining consistency across related database tables.
+
+The Orders API provides the backend foundation required for the React frontend to support shopping carts, checkout, customer order history, and administrative order management.
+
+
 
 
 

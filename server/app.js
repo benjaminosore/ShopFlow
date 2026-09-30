@@ -4,6 +4,7 @@ import cors from "cors";
 import healthRoutes from "./routes/healthRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.use(express.json());
 app.use("/api/health", healthRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
 
 export default app;
