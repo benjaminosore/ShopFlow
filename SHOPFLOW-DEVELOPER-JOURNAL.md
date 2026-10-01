@@ -889,19 +889,158 @@ Maintaining consistency across related database tables.
 
 The Orders API provides the backend foundation required for the React frontend to support shopping carts, checkout, customer order history, and administrative order management.
 
+## Authentication and Authorization
 
+### Objective
 
+Implement secure user authentication and role-based authorization for the ShopFlow REST API.
 
+The authentication system allows users to register and log in securely, while authorization controls access to protected resources based on the user's role.
 
+### Authentication Flow
 
+ShopFlow uses:
 
+-bcryptjs for password hashing
+-JSON Web Tokens (JWT) for authentication
+-Express middleware for protecting routes
+-MariaDB/MySQL for storing user records
 
+The registration flow is:
 
+```text
+Client
+  ↓
+POST /api/auth/register
+  ↓
+Validate input
+  ↓
+Check whether email already exists
+  ↓
+Hash password with bcrypt
+  ↓
+Store user in database
+  ↓
+Return safe user information
+```
 
+The login flow is:
 
+```text
+Client
+  ↓
+POST /api/auth/login
+  ↓
+Find user by email
+  ↓
+Compare password with bcrypt hash
+  ↓
+Create JWT
+  ↓
+Return token + user information
+```
 
+Passwords are never stored as plain text. The database stores a bcrypt password hash in the `password_hash` column.
 
+### JWT Authentication Middleware
 
+Protected routes use the `authenticate` middleware.
 
+The middleware:
 
+1. Reads the `Authorization` header.
+2. Checks for the `Bearer` token format.
+3. Verifies the JWT using the server's `JWT_SECRET`.
+4. Extracts the authenticated user's information.
+5. Stores the decoded information in `req.user`.
+6. Allows the request to continue.
+
+Requests without a valid token receive HTTP `401 Unauthorized`.
+
+### Role-Based Authorization
+
+Authentication establishes who the user is.
+
+Authorization establishes what the authenticated user is allowed to access.
+
+ShopFlow currently supports two roles:
+
+```text
+customer
+admin
+```
+
+The `authorizeRoles()` middleware checks whether the authenticated user's role is included in the roles allowed by the route.
+
+For example, the admin test route requires:
+
+```text
+admin
+```
+
+A customer attempting to access the route receives:
+
+```text
+403 Forbidden
+```
+
+An authenticated admin receives:
+
+```text
+200 OK
+```
+
+### Authorization Test
+
+The authorization middleware was tested using two accounts.
+
+#### Customer test
+
+```text
+Role: customer
+Endpoint: GET /api/users/admin-test
+Result: 403 Forbidden
+```
+
+This confirmed that authenticated customers cannot access admin-only resources.
+
+#### Admin test
+
+```text
+Role: admin
+Endpoint: GET /api/users/admin-test
+Result: 200 OK
+```
+
+This confirmed that users with the required role can access the protected resource.
+
+### Key Security Concepts Learned
+
+**Authentication vs Authorization**
+
+Authentication answers:
+
+> Who are you?
+
+Authorization answers:
+
+> What are you allowed to do?
+
+HTTP status codes
+
+```text
+401 Unauthorized
+→ Authentication is missing or invalid.
+
+403 Forbidden
+→ Authentication succeeded, but the user lacks permission.
+```
+
+### Development Notes
+
+Public registration always creates users with the `customer` role. The registration endpoint does not allow clients to choose the `admin` role.
+
+The development admin account was created directly in the database for authorization testing.
+
+The `/api/users/admin-test` endpoint was created only as a temporary test endpoint to verify role-based authorization.
 
