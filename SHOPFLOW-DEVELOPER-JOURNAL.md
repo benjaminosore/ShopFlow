@@ -1124,3 +1124,86 @@ A valid JWT proves the identity of the requester, but the user's role determines
 
 ShopFlow now has a working foundation for role-based access control that can be extended to other administrative resources such as products, inventory, and orders.
 
+## Product Access Control
+
+### Objective
+
+Protect product management operations using JWT authentication and role-based authorization while keeping product browsing publicly accessible.
+
+### Access Rules
+
+ShopFlow separates product browsing from product management.
+
+```text
+GET /api/products
+GET /api/products/:id
+→ Public access
+
+POST /api/products
+PUT /api/products/:id
+DELETE /api/products/:id
+→ Admin only
+```
+
+Product management routes use the existing authentication and role authorization middleware.
+
+### Authorization Flow
+
+```text
+Client
+  ↓
+Product Route
+  ↓
+JWT Authentication
+  ↓
+Role Authorization
+  ↓
+Product Controller
+  ↓
+Product Model
+  ↓
+MariaDB
+```
+
+Authentication verifies that the requester has a valid JWT.
+
+Authorization then checks whether the authenticated user has the `admin` role.
+
+### Testing
+
+The following authorization scenarios were successfully verified:
+
+```text
+POST /api/products
+No token → 401 Unauthorized
+Customer token → 403 Forbidden
+Admin token → 201 Created
+
+PUT /api/products/:id
+Customer token → 403 Forbidden
+Admin token → 200 OK
+
+DELETE /api/products/:id
+Customer token → 403 Forbidden
+Admin token → 200 OK
+```
+
+The temporary authorization test product was deleted successfully.
+
+A final GET request confirmed that the deleted product returned:
+
+```text
+404 Not Found
+```
+
+This verified both the authorization rules and the cleanup of temporary test data.
+
+### Key Lesson
+
+Authentication and authorization should be applied at the route level according to the sensitivity of the operation.
+
+ShopFlow allows customers to browse products but prevents them from creating, modifying, or deleting product records.
+
+This protects administrative operations while keeping the customer-facing product catalog publicly accessible.
+
+

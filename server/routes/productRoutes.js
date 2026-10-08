@@ -8,16 +8,38 @@ import {
   removeProduct
 } from "../controllers/productController.js";
 
+import {
+  authenticate,
+  authorizeRoles
+} from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
+// Public product browsing
 router.get("/", getProducts);
 
 router.get("/:id", getProduct);
 
-router.post("/", addProduct);
+// Admin-only product management
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("admin"),
+  addProduct
+);
 
-router.put("/:id", editProduct);
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  editProduct
+);
 
-router.delete("/:id", removeProduct);
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  removeProduct
+);
 
 export default router;
