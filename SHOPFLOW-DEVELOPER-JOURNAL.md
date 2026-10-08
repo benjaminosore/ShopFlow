@@ -1044,3 +1044,83 @@ The development admin account was created directly in the database for authoriza
 
 The `/api/users/admin-test` endpoint was created only as a temporary test endpoint to verify role-based authorization.
 
+## User Management and Access Control
+
+### Objective
+
+Extend ShopFlow authentication into protected user-management endpoints using JWT authentication and role-based authorization.
+
+### Endpoints
+
+`GET /api/users/me` — authenticated users can retrieve their own profile.
+`GET /api/users` — admin-only endpoint for retrieving all users.
+`GET /api/users/:id` — admin-only endpoint for retrieving a specific user.
+
+### Access Control
+
+User-management routes use the authentication and authorization middleware.
+
+The security boundary is:
+
+```text
+No token
+401 Unauthorized
+
+Customer token
+403 Forbidden for admin-only resources
+
+Admin token
+→ 200 OK
+```
+
+This separates authentication from authorization:
+
+Authentication determines whether the requester is logged in
+Authorization determines whether the authenticated user has permission to access the resource.
+
+### Data Protection
+
+The user model intentionally excludes `password_hash` from user profile and user-list queries.
+
+Therefore, API responses do not expose stored password hashes.
+
+### Architecture
+
+The user-management request flow is:
+
+```text
+Client
+  ↓
+User Route
+  ↓
+Authentication Middleware
+  ↓
+Role Authorization Middleware
+  ↓
+User Controller
+  ↓
+User Model
+  ↓
+MariaDB
+```
+
+### Testing
+
+The following scenarios were successfully verified:
+
+Unauthenticated request to `/api/users` → `401 Unauthorized`
+Customer request to `/api/users` → `403 Forbidden`
+Admin request to `/api/users` → `200 OK`
+Customer request to `/api/users/2` → `403 Forbidden`
+Admin request to `/api/users/2` → `200 OK`
+Authenticated customer request to `/api/users/me` → `200 OK`
+User responses do not expose `password_hash`
+
+### Key Lesson
+
+Authentication and authorization are separate security layers.
+
+A valid JWT proves the identity of the requester, but the user's role determines whether the requester is allowed to perform a particular operation.
+
+ShopFlow now has a working foundation for role-based access control that can be extended to other administrative resources such as products, inventory, and orders.
+
