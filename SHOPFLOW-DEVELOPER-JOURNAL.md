@@ -1206,4 +1206,100 @@ ShopFlow allows customers to browse products but prevents them from creating, mo
 
 This protects administrative operations while keeping the customer-facing product catalog publicly accessible.
 
+## Date: 20 October 2026
 
+### Milestone: Orders API Authorization and Order Creation Testing
+
+### 1. Objective
+
+To verify that the ShopFlow Orders API enforces authentication and role-based authorization, and that new orders are assigned to the authenticated user's identity rather than a client-supplied user ID.
+
+### 2. Work Completed
+
+**A. Orders API authorization**
+
+Verified the following access-control rules:
+
+* Unauthenticated users cannot retrieve all orders.
+* Customers cannot retrieve the complete list of orders.
+* Administrators can retrieve all orders.
+* Order creation requires authentication.
+* Order ownership is determined by the authenticated user's identity.
+
+**B. Secure order creation**
+
+Reviewed `controllers/orderController.js` and confirmed that the controller obtains the customer ID from the authenticated request:
+
+```javascript
+const userId = Number(req.user.id);
+```
+
+The controller validates order items, checks product availability and stock, calculates the order total, creates the order and its items, updates product stock, and uses a database transaction to commit or roll back the operation.
+
+**C. Order creation security test**
+
+Created and executed `test-order-creation.js`.
+
+The test authenticated customer ID 2 and submitted an order request containing a deliberately different `user_id` of 1.
+
+The API successfully created the order and assigned it to customer ID 2, demonstrating that the submitted `user_id` did not override the authenticated user's identity.
+
+### 3. Test Results
+
+| Test                                         | Expected Result                         | Actual Result                   | Status |
+| -------------------------------------------- | --------------------------------------- | ------------------------------- | ------ |
+| Unauthenticated request to `GET /api/orders` | 401 Unauthorized                        | 401                             | PASS   |
+| Customer request to `GET /api/orders`        | 403 Forbidden                           | 403                             | PASS   |
+| Administrator request to `GET /api/orders`   | 200 OK                                  | 200                             | PASS   |
+| Customer creates an order                    | 201 Created                             | 201                             | PASS   |
+| Customer submits a forged `user_id`          | Order belongs to authenticated customer | Order assigned to customer ID 2 | PASS   |
+| Product stock after successful order         | Decrease by ordered quantity            | Stock decreased from 18 to 17   | PASS   |
+| Customer attempts to access another customer's individual order | 403 Forbidden | 403 Forbidden | PASS |
+
+### 4. Created Order Evidence
+
+Order ID: 2
+Customer ID: 2
+Product: Test Wireless Mouse
+Product ID: 2
+Quantity: 1
+Unit price: KSh 1,500
+Order total: KSh 1,500
+Initial order status: Pending
+HTTP response: 201 Created
+
+### 5. Key Lessons Learned
+
+Authentication identifies the user making an API request.
+Authorization determines which resources the user may access.
+Sensitive ownership fields should be derived from the authenticated identity rather than trusted from client input.
+Database transactions help maintain consistency when an order and its items are created and inventory is updated.
+API tests should verify actual responses and database effects, not just the code implementation.
+
+### 6. Files Involved
+
+`server/controllers/orderController.js`
+`server/routes/orderRoutes.js`
+`server/test-order-creation.js`
+
+Existing authorization test scripts:
+
+`server/test-orders-auth.js`
+`server/test-admin-orders-auth.js'
+
+### 7. Next Steps
+
+1. Review the final changes in the Orders controller and routes.
+2. Verify the final developer journal and test scripts.
+3. Stage only the intended Orders API milestone files.
+4. Commit and push the completed milestone to GitHub.
+5. Continue verifying product, category, inventory, and order-validation behaviour before starting the React frontend.
+
+### 8. Milestone Status
+
+- Orders API authentication and role-based authorization tests: PASSED.
+- Individual order ownership test: PASSED.
+- Secure order creation using the authenticated user's identity: PASSED.
+- Product stock update after order creation: PASSED.
+- Documentation: Updated.
+- Git commit and push: Pending final review.

@@ -37,6 +37,18 @@ export const getOrder = async (req, res) => {
       });
     }
 
+    // Customers can only view their own orders.
+    // Admins can view any order.
+    if (
+      req.user.role !== "admin" &&
+      Number(order.user_id) !== Number(req.user.id)
+    ) {
+      return res.status(403).json({
+        status: "error",
+        message: "You do not have permission to access this order"
+      });
+    }
+
     res.json({
       status: "success",
       data: order
@@ -52,12 +64,15 @@ export const getOrder = async (req, res) => {
 };
 
 export const addOrder = async (req, res) => {
-  const { user_id, items } = req.body;
+  const { items } = req.body;
 
-  if (!Number.isInteger(Number(user_id)) || Number(user_id) <= 0) {
-    return res.status(400).json({
+  // The authenticated user's ID determines order ownership.
+  const userId = Number(req.user.id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(401).json({
       status: "error",
-      message: "Valid user_id is required"
+      message: "Invalid authenticated user"
     });
   }
 
@@ -68,14 +83,12 @@ export const addOrder = async (req, res) => {
     });
   }
 
-  const userId = Number(user_id);
-
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    // Verify customer exists
+    // Verify authenticated user exists
     const [users] = await connection.query(
       "SELECT id FROM users WHERE id = ?",
       [userId]
@@ -155,7 +168,7 @@ export const addOrder = async (req, res) => {
       });
     }
 
-    // Create the order
+    // Create the order for the authenticated user.
     const orderId = await createOrder(
       connection,
       userId,
