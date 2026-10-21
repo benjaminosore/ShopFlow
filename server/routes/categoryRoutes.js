@@ -8,16 +8,38 @@ import {
   removeCategory
 } from "../controllers/categoryController.js";
 
+import {
+  authenticate,
+  authorizeRoles
+} from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
+// Public category browsing
 router.get("/", getCategories);
 
 router.get("/:id", getCategory);
 
-router.post("/", addCategory);
+// Admin-only category management
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("admin"),
+  addCategory
+);
 
-router.put("/:id", editCategory);
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  editCategory
+);
 
-router.delete("/:id", removeCategory);
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  removeCategory
+);
 
 export default router;
