@@ -1,8 +1,6 @@
 import pool from "../config/database.js";
-
 export const getAllProducts = async () => {
-  const [rows] = await pool.query(`
-    SELECT
+  const [rows] = await pool.query(`     SELECT
       p.id,
       p.category_id,
       c.name AS category_name,
@@ -23,8 +21,8 @@ export const getAllProducts = async () => {
 };
 
 export const getProductById = async (id) => {
-  const [rows] = await pool.query(`
-    SELECT
+  const [rows] = await pool.query(
+    `     SELECT
       p.id,
       p.category_id,
       c.name AS category_name,
@@ -39,7 +37,9 @@ export const getProductById = async (id) => {
     INNER JOIN categories c
       ON p.category_id = c.id
     WHERE p.id = ?
-  `, [id]);
+    `,
+    [id],
+  );
 
   return rows[0];
 };
@@ -50,20 +50,13 @@ export const createProduct = async (
   description,
   price,
   stockQuantity,
-  imageUrl
+  imageUrl,
 ) => {
   const [result] = await pool.query(
     `INSERT INTO products
       (category_id, name, description, price, stock_quantity, image_url)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      categoryId,
-      name,
-      description,
-      price,
-      stockQuantity,
-      imageUrl
-    ]
+    [categoryId, name, description, price, stockQuantity, imageUrl],
   );
 
   return result.insertId;
@@ -75,8 +68,7 @@ export const updateProduct = async (
   name,
   description,
   price,
-  stockQuantity,
-  imageUrl
+  imageUrl,
 ) => {
   const [result] = await pool.query(
     `UPDATE products
@@ -85,28 +77,31 @@ export const updateProduct = async (
        name = ?,
        description = ?,
        price = ?,
-       stock_quantity = ?,
        image_url = ?
      WHERE id = ?`,
-    [
-      categoryId,
-      name,
-      description,
-      price,
-      stockQuantity,
-      imageUrl,
-      id
-    ]
+    [categoryId, name, description, price, imageUrl, id],
+  );
+
+  return result.affectedRows;
+};
+
+export const adjustProductInventory = async (id, adjustment) => {
+  const [result] = await pool.query(
+    `UPDATE products
+     SET stock_quantity = stock_quantity + ?
+     WHERE id = ?
+       AND (
+         ? > 0
+         OR stock_quantity >= ABS(?)
+       )`,
+    [adjustment, id, adjustment, adjustment],
   );
 
   return result.affectedRows;
 };
 
 export const deleteProduct = async (id) => {
-  const [result] = await pool.query(
-    "DELETE FROM products WHERE id = ?",
-    [id]
-  );
+  const [result] = await pool.query("DELETE FROM products WHERE id = ?", [id]);
 
   return result.affectedRows;
 };
