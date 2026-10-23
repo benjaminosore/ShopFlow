@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import Login from "./Login";
+import ProductForm from "./ProductForm";
 import { apiRequest } from "./api";
 
 function formatCurrency(amount) {
@@ -21,45 +22,67 @@ function App() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // Product form and refresh state.
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [notice, setNotice] = useState("");
+
   // Load dashboard data after successful login.
   useEffect(() => {
-  if (!session?.token) {
-    return;
-  }
+    if (!session?.token) {
+      return;
+    }
 
-  let cancelled = false;
+    let cancelled = false;
 
-  async function loadDashboard() {
-    try {
-      setLoading(true);
-      setError("");
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        setError("");
 
-      const [productsResult, categoriesResult] = await Promise.all([
-        apiRequest("/products", { token: session.token }),
-        apiRequest("/categories", { token: session.token }),
-      ]);
+        const [productsResult, categoriesResult] = await Promise.all([
+          apiRequest("/products", { token: session.token }),
+          apiRequest("/categories", { token: session.token }),
+        ]);
 
-      if (!cancelled) {
-        setProducts(productsResult.data || []);
-        setCategories(categoriesResult.data || []);
-      }
-    } catch (err) {
-      if (!cancelled) {
-        setError(err.message || "Unable to load ShopFlow data.");
-      }
-    } finally {
-      if (!cancelled) {
-        setLoading(false);
+        if (!cancelled) {
+          setProducts(productsResult.data || []);
+          setCategories(categoriesResult.data || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Unable to load ShopFlow data.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token, refreshKey]);
+
+  // Refresh the dashboard after a product is created.
+  function handleProductCreated() {
+    setShowProductForm(false);
+    setError("");
+    setNotice("Product created successfully.");
+    setRefreshKey((currentKey) => currentKey + 1);
   }
 
-  loadDashboard();
-
-  return () => {
-    cancelled = true;
-  };
-}, [session?.token]);
+  function handleLogout() {
+    setSession(null);
+    setShowProductForm(false);
+    setNotice("");
+    setError("");
+    setProducts([]);
+    setCategories([]);
+  }
 
   const totalUnits = products.reduce(
     (total, product) =>
@@ -101,22 +124,41 @@ function App() {
 
       <main className="main-content" id="overview">
         <header className="page-header">
-  <div>
-    <p className="eyebrow">YOUR BUSINESS AT A GLANCE</p>
-    <h1>Dashboard Overview</h1>
-    <p>Welcome to your ShopFlow management workspace.</p>
-  </div>
+          <div>
+            <p className="eyebrow">YOUR BUSINESS AT A GLANCE</p>
+            <h1>Dashboard Overview</h1>
+            <p>Welcome to your ShopFlow management workspace.</p>
+          </div>
 
-  <button
-    type="button"
-    className="logout-button"
-    onClick={() => setSession(null)}
-  >
-    Sign out
-  </button>
-</header>
+          <button
+            type="button"
+            className="logout-button"
+            onClick={handleLogout}
+          >
+            Sign out
+          </button>
+        </header>
 
-        {error && <p className="error-message">{error}</p>}
+        {error && (
+          <p className="error-message" role="alert">
+            {error}
+          </p>
+        )}
+
+        {notice && (
+          <p className="success-message" role="status">
+            {notice}
+          </p>
+        )}
+
+        {showProductForm && (
+          <ProductForm
+            token={session.token}
+            categories={categories}
+            onProductCreated={handleProductCreated}
+            onCancel={() => setShowProductForm(false)}
+          />
+        )}
 
         <section className="stats-grid">
           <article className="stat-card">
@@ -149,13 +191,26 @@ function App() {
               <p>Products loaded from your database.</p>
             </div>
 
-            <input
-              type="search"
-              placeholder="Search products..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              aria-label="Search products"
-            />
+            <div className="product-toolbar">
+              <input
+                type="search"
+                placeholder="Search products..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                aria-label="Search products"
+              />
+
+              <button
+                type="button"
+                className="add-product-button"
+                onClick={() => {
+                  setNotice("");
+                  setShowProductForm(true);
+                }}
+              >
+                + Add Product
+              </button>
+            </div>
           </div>
 
           <div className="table-container">
