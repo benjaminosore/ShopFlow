@@ -1,0 +1,225 @@
+/* Inventory form panel */
+.inventory-form-panel {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 25px;
+  padding: 26px;
+  border: 1px solid #e8ebf2;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgb(30 45 75 / 3%);
+}
+
+/* Heading */
+.inventory-form-heading {
+  margin-bottom: 24px;
+}
+
+.inventory-form-eyebrow {
+  margin: 0 0 9px;
+  color: #6268df;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.inventory-form-heading h2 {
+  margin: 0;
+  color: #202c43;
+  font-size: 23px;
+  letter-spacing: -0.5px;
+}
+
+.inventory-form-heading > p:last-child {
+  margin: 8px 0 0;
+  color: #8792a7;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* Current stock summary */
+.inventory-current-stock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 23px;
+  padding: 16px;
+  border: 1px solid #e5e7ff;
+  border-radius: 10px;
+  background: #f7f7ff;
+}
+
+.inventory-current-stock span {
+  color: #68738a;
+  font-size: 12px;
+}
+
+.inventory-current-stock strong {
+  color: #5058cf;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* Form field */
+.inventory-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.inventory-form-field label {
+  color: #344157;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.inventory-form-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 13px;
+  border: 1px solid #dfe4ee;
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  color: #27344b;
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.inventory-form-field input:focus {
+  border-color: #666ce5;
+  box-shadow: 0 0 0 3px rgb(102 108 229 / 10%);
+}
+
+.inventory-form-field input:disabled {
+  background: #f6f7fa;
+  cursor: wait;
+}
+
+.inventory-form-field small {
+  color: #8994a8;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* Expected stock preview */
+.inventory-form-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 22px;
+  padding: 15px 16px;
+  border: 1px solid #e4eee9;
+  border-radius: 9px;
+  background: #f5fbf7;
+}
+
+.inventory-form-preview span {
+  color: #61766b;
+  font-size: 11px;
+}
+
+.inventory-form-preview strong {
+  color: #21895a;
+  font-size: 13px;
+  text-align: right;
+}
+
+/* Error message */
+.inventory-form-error {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #f5c5ca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #b42332;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Action buttons */
+.inventory-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #edf0f5;
+}
+
+.inventory-form-actions button {
+  min-height: 42px;
+  padding: 10px 17px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.inventory-form-cancel {
+  border: 1px solid #dfe4ee;
+  background: #ffffff;
+  color: #59667c;
+}
+
+.inventory-form-cancel:hover:not(:disabled) {
+  border-color: #bfc7d6;
+  background: #f8f9fc;
+}
+
+.inventory-form-submit {
+  border: 1px solid #555de0;
+  background: #555de0;
+  color: #ffffff;
+}
+
+.inventory-form-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #454dc9;
+  background: #454dc9;
+}
+
+.inventory-form-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.inventory-form-actions button:focus-visible {
+  outline: 3px solid rgb(85 93 224 / 25%);
+  outline-offset: 3px;
+}
+
+/* Small screens */
+@media (max-width: 600px) {
+  .inventory-form-panel {
+    padding: 20px 16px;
+  }
+
+  .inventory-current-stock,
+  .inventory-form-preview {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .inventory-form-preview strong {
+    text-align: left;
+  }
+
+  .inventory-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .inventory-form-actions button {
+    width: 100%;
+  }
+}

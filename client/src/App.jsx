@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import Login from "./Login";
 import ProductForm from "./ProductForm";
+import InventoryForm from "./InventoryForm";
 import { apiRequest } from "./api";
 
 function formatCurrency(amount) {
@@ -22,9 +23,10 @@ function App() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  // Product form and refresh state.
+  // Product form, inventory form, and refresh state.
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [inventoryProduct, setInventoryProduct] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState("");
 
@@ -72,6 +74,7 @@ function App() {
   function handleProductCreated() {
     setShowProductForm(false);
     setEditingProduct(null);
+    setInventoryProduct(null);
     setError("");
     setNotice("Product created successfully.");
     setRefreshKey((currentKey) => currentKey + 1);
@@ -81,31 +84,67 @@ function App() {
   function handleProductUpdated() {
     setShowProductForm(false);
     setEditingProduct(null);
+    setInventoryProduct(null);
     setError("");
     setNotice("Product updated successfully.");
     setRefreshKey((currentKey) => currentKey + 1);
   }
 
-  // Open the form for an existing product.
+  // Refresh after successfully adjusting inventory.
+  function handleInventoryAdjusted() {
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setInventoryProduct(null);
+    setError("");
+    setNotice("Inventory adjusted successfully.");
+    setRefreshKey((currentKey) => currentKey + 1);
+  }
+
+  // Open the form for creating a new product.
+  function handleAddProduct() {
+    setEditingProduct(null);
+    setInventoryProduct(null);
+    setError("");
+    setNotice("");
+    setShowProductForm(true);
+  }
+
+  // Open the form for editing an existing product.
   function handleEditProduct(product) {
     setError("");
     setNotice("");
+    setInventoryProduct(null);
     setEditingProduct(product);
     setShowProductForm(true);
   }
 
-  // Close the form without saving.
+  // Open the form for adjusting a product's stock.
+  function handleAdjustInventory(product) {
+    setError("");
+    setNotice("");
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setInventoryProduct(product);
+  }
+
+  // Close either form without saving.
   function handleCancelProductForm() {
     setShowProductForm(false);
     setEditingProduct(null);
     setError("");
   }
 
-  // Clear the frontend session when signing out.
+  function handleCancelInventoryForm() {
+    setInventoryProduct(null);
+    setError("");
+  }
+
+  // Clear frontend state when signing out.
   function handleLogout() {
     setSession(null);
     setShowProductForm(false);
     setEditingProduct(null);
+    setInventoryProduct(null);
     setNotice("");
     setError("");
     setProducts([]);
@@ -179,6 +218,7 @@ function App() {
           </p>
         )}
 
+        {/* Create or edit product details. */}
         {showProductForm && (
           <ProductForm
             key={editingProduct?.id ?? "new-product"}
@@ -188,6 +228,17 @@ function App() {
             onProductCreated={handleProductCreated}
             onProductUpdated={handleProductUpdated}
             onCancel={handleCancelProductForm}
+          />
+        )}
+
+        {/* Adjust stock separately from product details. */}
+        {inventoryProduct && (
+          <InventoryForm
+            key={inventoryProduct.id}
+            token={session.token}
+            product={inventoryProduct}
+            onInventoryAdjusted={handleInventoryAdjusted}
+            onCancel={handleCancelInventoryForm}
           />
         )}
 
@@ -234,12 +285,7 @@ function App() {
               <button
                 type="button"
                 className="add-product-button"
-                onClick={() => {
-                  setEditingProduct(null);
-                  setError("");
-                  setNotice("");
-                  setShowProductForm(true);
-                }}
+                onClick={handleAddProduct}
               >
                 + Add Product
               </button>
@@ -275,14 +321,25 @@ function App() {
                       <td>{formatCurrency(product.price)}</td>
                       <td>{product.stock_quantity}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="edit-product-button"
-                          onClick={() => handleEditProduct(product)}
-                          aria-label={`Edit ${product.name}`}
-                        >
-                          Edit
-                        </button>
+                        <div className="product-actions">
+                          <button
+                            type="button"
+                            className="edit-product-button"
+                            onClick={() => handleEditProduct(product)}
+                            aria-label={`Edit ${product.name}`}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            className="inventory-adjust-button"
+                            onClick={() => handleAdjustInventory(product)}
+                            aria-label={`Adjust stock for ${product.name}`}
+                          >
+                            Adjust Stock
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
