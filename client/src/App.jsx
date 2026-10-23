@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import Login from "./Login";
-
-const API_URL = "http://localhost:5000/api";
+import { apiRequest } from "./api";
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat("en-KE", {
@@ -24,57 +23,43 @@ function App() {
 
   // Load dashboard data after successful login.
   useEffect(() => {
-    if (!session?.token) {
-      return;
-    }
+  if (!session?.token) {
+    return;
+  }
 
-    let cancelled = false;
+  let cancelled = false;
 
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        setError("");
+  async function loadDashboard() {
+    try {
+      setLoading(true);
+      setError("");
 
-        const headers = {
-          Authorization: `Bearer ${session.token}`,
-        };
+      const [productsResult, categoriesResult] = await Promise.all([
+        apiRequest("/products", { token: session.token }),
+        apiRequest("/categories", { token: session.token }),
+      ]);
 
-        const [productsResponse, categoriesResponse] =
-          await Promise.all([
-            fetch(`${API_URL}/products`, { headers }),
-            fetch(`${API_URL}/categories`, { headers }),
-          ]);
-
-        if (!productsResponse.ok || !categoriesResponse.ok) {
-          throw new Error("Could not load dashboard data.");
-        }
-
-        const productsResult = await productsResponse.json();
-        const categoriesResult = await categoriesResponse.json();
-
-        if (!cancelled) {
-          setProducts(productsResult.data || []);
-          setCategories(categoriesResult.data || []);
-        }
-      } catch {
-        if (!cancelled) {
-          setError(
-            "Unable to load ShopFlow data. Check your backend connection.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      if (!cancelled) {
+        setProducts(productsResult.data || []);
+        setCategories(categoriesResult.data || []);
+      }
+    } catch (err) {
+      if (!cancelled) {
+        setError(err.message || "Unable to load ShopFlow data.");
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
       }
     }
+  }
 
-    loadDashboard();
+  loadDashboard();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.token]);
+  return () => {
+    cancelled = true;
+  };
+}, [session?.token]);
 
   const totalUnits = products.reduce(
     (total, product) =>
