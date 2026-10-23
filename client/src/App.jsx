@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import Login from "./Login";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -12,22 +13,36 @@ function formatCurrency(amount) {
 }
 
 function App() {
+  // Store the authenticated user's session in memory.
+  const [session, setSession] = useState(null);
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // Load dashboard data after successful login.
   useEffect(() => {
+    if (!session?.token) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadDashboard() {
       try {
         setLoading(true);
         setError("");
 
+        const headers = {
+          Authorization: `Bearer ${session.token}`,
+        };
+
         const [productsResponse, categoriesResponse] =
           await Promise.all([
-            fetch(`${API_URL}/products`),
-            fetch(`${API_URL}/categories`),
+            fetch(`${API_URL}/products`, { headers }),
+            fetch(`${API_URL}/categories`, { headers }),
           ]);
 
         if (!productsResponse.ok || !categoriesResponse.ok) {
@@ -37,19 +52,29 @@ function App() {
         const productsResult = await productsResponse.json();
         const categoriesResult = await categoriesResponse.json();
 
-        setProducts(productsResult.data || []);
-        setCategories(categoriesResult.data || []);
+        if (!cancelled) {
+          setProducts(productsResult.data || []);
+          setCategories(categoriesResult.data || []);
+        }
       } catch {
-        setError(
-          "Unable to connect to ShopFlow. Check that your backend is running.",
-        );
+        if (!cancelled) {
+          setError(
+            "Unable to load ShopFlow data. Check your backend connection.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     loadDashboard();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token]);
 
   const totalUnits = products.reduce(
     (total, product) =>
@@ -71,6 +96,11 @@ function App() {
       .includes(search.toLowerCase()),
   );
 
+  // Display the login page until an administrator signs in.
+  if (!session) {
+    return <Login onLogin={setSession} />;
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -86,12 +116,20 @@ function App() {
 
       <main className="main-content" id="overview">
         <header className="page-header">
-          <div>
-            <p className="eyebrow">YOUR BUSINESS AT A GLANCE</p>
-            <h1>Dashboard Overview</h1>
-            <p>Welcome to your ShopFlow management workspace.</p>
-          </div>
-        </header>
+  <div>
+    <p className="eyebrow">YOUR BUSINESS AT A GLANCE</p>
+    <h1>Dashboard Overview</h1>
+    <p>Welcome to your ShopFlow management workspace.</p>
+  </div>
+
+  <button
+    type="button"
+    className="logout-button"
+    onClick={() => setSession(null)}
+  >
+    Sign out
+  </button>
+</header>
 
         {error && <p className="error-message">{error}</p>}
 
@@ -182,7 +220,9 @@ function App() {
               {categories.map((category) => (
                 <article className="category-card" key={category.id}>
                   <h3>{category.name}</h3>
-                  <p>{category.description || "No description available."}</p>
+                  <p>
+                    {category.description || "No description available."}
+                  </p>
                 </article>
               ))}
             </div>
