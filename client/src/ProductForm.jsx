@@ -11,8 +11,27 @@ const initialForm = {
   image_url: "",
 };
 
-function ProductForm({ token, categories, onProductCreated, onCancel }) {
-  const [form, setForm] = useState(initialForm);
+function ProductForm({
+  token,
+  categories,
+  product = null,
+  onProductCreated,
+  onProductUpdated,
+  onCancel,
+}) {
+  const isEditing = Boolean(product);
+
+  const [form, setForm] = useState(() => ({
+    category_id: product ? String(product.category_id) : "",
+    name: product?.name || "",
+    description: product?.description || "",
+    price: product ? String(product.price) : "",
+    stock_quantity: product
+      ? String(product.stock_quantity ?? 0)
+      : "0",
+    image_url: product?.image_url || "",
+  }));
+
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,16 +46,24 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-
     setError("");
 
     if (!categories.length) {
-      setError("Create a product category before adding a product.");
+      setError("Create a product category before managing products.");
       return;
     }
 
+    const categoryId = Number(form.category_id);
     const price = Number(form.price);
     const stockQuantity = Number(form.stock_quantity);
+
+    if (
+      !Number.isInteger(categoryId) ||
+      categoryId <= 0
+    ) {
+      setError("Please select a valid category.");
+      return;
+    }
 
     if (!form.name.trim()) {
       setError("Product name is required.");
@@ -49,36 +76,47 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
     }
 
     if (
-      !Number.isInteger(stockQuantity) ||
-      stockQuantity < 0
+      !isEditing &&
+      (!Number.isInteger(stockQuantity) || stockQuantity < 0)
     ) {
       setError("Stock must be a non-negative whole number.");
       return;
     }
 
+    const payload = {
+      category_id: categoryId,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      price,
+      image_url: form.image_url.trim() || null,
+    };
+
+    // Initial stock is supplied only when creating a product.
+    // Editing product details must never overwrite inventory.
+    if (!isEditing) {
+      payload.stock_quantity = stockQuantity;
+    }
+
     setSubmitting(true);
 
     try {
-      const result = await apiRequest("/products", {
-        method: "POST",
-        token,
-        body: JSON.stringify({
-          category_id: Number(form.category_id),
-          name: form.name.trim(),
-          description: form.description.trim() || null,
-          price,
-          stock_quantity: stockQuantity,
-          image_url: form.image_url.trim() || null,
-        }),
-      });
+      const result = await apiRequest(
+        isEditing ? `/products/${product.id}` : "/products",
+        {
+          method: isEditing ? "PUT" : "POST",
+          token,
+          body: JSON.stringify(payload),
+        },
+      );
 
-      setForm(initialForm);
-
-      if (onProductCreated) {
-        onProductCreated(result.data);
+      if (isEditing) {
+        onProductUpdated?.(product);
+      } else {
+        setForm(initialForm);
+        onProductCreated?.(result.data);
       }
     } catch (err) {
-      setError(err.message || "Unable to create the product.");
+      setError(err.message || "Unable to save the product.");
     } finally {
       setSubmitting(false);
     }
@@ -88,9 +126,17 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
     <section className="product-form-panel">
       <div className="product-form-heading">
         <div>
-          <p className="product-form-eyebrow">PRODUCT MANAGEMENT</p>
-          <h2>Add a product</h2>
-          <p>Enter the details for your new product.</p>
+          <p className="product-form-eyebrow">
+            PRODUCT MANAGEMENT
+          </p>
+
+          <h2>{isEditing ? "Edit product" : "Add a product"}</h2>
+
+          <p>
+            {isEditing
+              ? "Update product details without changing its stock."
+              : "Enter the details for your new product."}
+          </p>
         </div>
       </div>
 
@@ -156,21 +202,23 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
             />
           </div>
 
-          <div className="product-form-field">
-            <label htmlFor="product-stock">Initial stock *</label>
+          {!isEditing && (
+            <div className="product-form-field">
+              <label htmlFor="product-stock">Initial stock *</label>
 
-            <input
-              id="product-stock"
-              name="stock_quantity"
-              type="number"
-              value={form.stock_quantity}
-              onChange={handleChange}
-              min="0"
-              step="1"
-              required
-              disabled={submitting}
-            />
-          </div>
+              <input
+                id="product-stock"
+                name="stock_quantity"
+                type="number"
+                value={form.stock_quantity}
+                onChange={handleChange}
+                min="0"
+                step="1"
+                required
+                disabled={submitting}
+              />
+            </div>
+          )}
 
           <div className="product-form-field product-form-field--full">
             <label htmlFor="product-description">
@@ -189,7 +237,9 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
           </div>
 
           <div className="product-form-field product-form-field--full">
-            <label htmlFor="product-image">Image URL (optional)</label>
+            <label htmlFor="product-image">
+              Image URL (optional)
+            </label>
 
             <input
               id="product-image"
@@ -218,7 +268,11 @@ function ProductForm({ token, categories, onProductCreated, onCancel }) {
             type="submit"
             disabled={submitting || categories.length === 0}
           >
-            {submitting ? "Creating product..." : "Create product"}
+            {submitting
+              ? "Saving..."
+              : isEditing
+                ? "Save changes"
+                : "Create product"}
           </button>
         </div>
       </form>

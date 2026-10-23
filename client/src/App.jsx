@@ -24,6 +24,7 @@ function App() {
 
   // Product form and refresh state.
   const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState("");
 
@@ -67,17 +68,44 @@ function App() {
     };
   }, [session?.token, refreshKey]);
 
-  // Refresh the dashboard after a product is created.
+  // Refresh after successfully creating a product.
   function handleProductCreated() {
     setShowProductForm(false);
+    setEditingProduct(null);
     setError("");
     setNotice("Product created successfully.");
     setRefreshKey((currentKey) => currentKey + 1);
   }
 
+  // Refresh after successfully editing a product.
+  function handleProductUpdated() {
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setError("");
+    setNotice("Product updated successfully.");
+    setRefreshKey((currentKey) => currentKey + 1);
+  }
+
+  // Open the form for an existing product.
+  function handleEditProduct(product) {
+    setError("");
+    setNotice("");
+    setEditingProduct(product);
+    setShowProductForm(true);
+  }
+
+  // Close the form without saving.
+  function handleCancelProductForm() {
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setError("");
+  }
+
+  // Clear the frontend session when signing out.
   function handleLogout() {
     setSession(null);
     setShowProductForm(false);
+    setEditingProduct(null);
     setNotice("");
     setError("");
     setProducts([]);
@@ -153,10 +181,13 @@ function App() {
 
         {showProductForm && (
           <ProductForm
+            key={editingProduct?.id ?? "new-product"}
             token={session.token}
             categories={categories}
+            product={editingProduct}
             onProductCreated={handleProductCreated}
-            onCancel={() => setShowProductForm(false)}
+            onProductUpdated={handleProductUpdated}
+            onCancel={handleCancelProductForm}
           />
         )}
 
@@ -204,6 +235,8 @@ function App() {
                 type="button"
                 className="add-product-button"
                 onClick={() => {
+                  setEditingProduct(null);
+                  setError("");
                   setNotice("");
                   setShowProductForm(true);
                 }}
@@ -221,17 +254,18 @@ function App() {
                   <th>Category</th>
                   <th>Price</th>
                   <th>Stock</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="4">Loading products...</td>
+                    <td colSpan="5">Loading products...</td>
                   </tr>
                 ) : filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan="4">No products found.</td>
+                    <td colSpan="5">No products found.</td>
                   </tr>
                 ) : (
                   filteredProducts.map((product) => (
@@ -240,6 +274,16 @@ function App() {
                       <td>{product.category_name || "—"}</td>
                       <td>{formatCurrency(product.price)}</td>
                       <td>{product.stock_quantity}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="edit-product-button"
+                          onClick={() => handleEditProduct(product)}
+                          aria-label={`Edit ${product.name}`}
+                        >
+                          Edit
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
