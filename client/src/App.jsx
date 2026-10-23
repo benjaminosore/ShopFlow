@@ -14,7 +14,6 @@ function formatCurrency(amount) {
 }
 
 function App() {
-  // Store the authenticated user's session in memory.
   const [session, setSession] = useState(null);
 
   const [products, setProducts] = useState([]);
@@ -23,12 +22,15 @@ function App() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  // Product form, inventory form, and refresh state.
+  // Product forms and dashboard refresh.
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [inventoryProduct, setInventoryProduct] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState("");
+
+  // Track an ongoing product deletion.
+  const [deletingProductId, setDeletingProductId] = useState(null);
 
   // Load dashboard data after successful login.
   useEffect(() => {
@@ -70,37 +72,32 @@ function App() {
     };
   }, [session?.token, refreshKey]);
 
-  // Refresh after successfully creating a product.
+  // Refresh after creating a product.
   function handleProductCreated() {
     setShowProductForm(false);
     setEditingProduct(null);
-    setInventoryProduct(null);
     setError("");
     setNotice("Product created successfully.");
-    setRefreshKey((currentKey) => currentKey + 1);
+    setRefreshKey((key) => key + 1);
   }
 
-  // Refresh after successfully editing a product.
+  // Refresh after editing a product.
   function handleProductUpdated() {
     setShowProductForm(false);
     setEditingProduct(null);
-    setInventoryProduct(null);
     setError("");
     setNotice("Product updated successfully.");
-    setRefreshKey((currentKey) => currentKey + 1);
+    setRefreshKey((key) => key + 1);
   }
 
-  // Refresh after successfully adjusting inventory.
+  // Refresh after adjusting inventory.
   function handleInventoryAdjusted() {
-    setShowProductForm(false);
-    setEditingProduct(null);
     setInventoryProduct(null);
     setError("");
     setNotice("Inventory adjusted successfully.");
-    setRefreshKey((currentKey) => currentKey + 1);
+    setRefreshKey((key) => key + 1);
   }
 
-  // Open the form for creating a new product.
   function handleAddProduct() {
     setEditingProduct(null);
     setInventoryProduct(null);
@@ -109,7 +106,6 @@ function App() {
     setShowProductForm(true);
   }
 
-  // Open the form for editing an existing product.
   function handleEditProduct(product) {
     setError("");
     setNotice("");
@@ -118,7 +114,6 @@ function App() {
     setShowProductForm(true);
   }
 
-  // Open the form for adjusting a product's stock.
   function handleAdjustInventory(product) {
     setError("");
     setNotice("");
@@ -127,7 +122,6 @@ function App() {
     setInventoryProduct(product);
   }
 
-  // Close either form without saving.
   function handleCancelProductForm() {
     setShowProductForm(false);
     setEditingProduct(null);
@@ -139,7 +133,50 @@ function App() {
     setError("");
   }
 
-  // Clear frontend state when signing out.
+  // Delete a product after explicit confirmation.
+  async function handleDeleteProduct(product) {
+    const confirmed = window.confirm(
+      `Delete "${product.name}" permanently? This cannot be undone. ` +
+        "Products referenced by orders cannot be deleted.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setDeletingProductId(product.id);
+
+    try {
+      await apiRequest(`/products/${product.id}`, {
+        method: "DELETE",
+        token: session.token,
+      });
+
+      setNotice(`"${product.name}" was deleted successfully.`);
+
+      // Close a form if it was open for this product.
+      if (editingProduct?.id === product.id) {
+        setShowProductForm(false);
+        setEditingProduct(null);
+      }
+
+      if (inventoryProduct?.id === product.id) {
+        setInventoryProduct(null);
+      }
+
+      // Reload product data and dashboard statistics.
+      setRefreshKey((key) => key + 1);
+    } catch (err) {
+      setError(
+        err.message || "Unable to delete the product.",
+      );
+    } finally {
+      setDeletingProductId(null);
+    }
+  }
+
   function handleLogout() {
     setSession(null);
     setShowProductForm(false);
@@ -171,7 +208,6 @@ function App() {
       .includes(search.toLowerCase()),
   );
 
-  // Display the login page until an administrator signs in.
   if (!session) {
     return <Login onLogin={setSession} />;
   }
@@ -218,7 +254,6 @@ function App() {
           </p>
         )}
 
-        {/* Create or edit product details. */}
         {showProductForm && (
           <ProductForm
             key={editingProduct?.id ?? "new-product"}
@@ -231,7 +266,6 @@ function App() {
           />
         )}
 
-        {/* Adjust stock separately from product details. */}
         {inventoryProduct && (
           <InventoryForm
             key={inventoryProduct.id}
@@ -320,12 +354,14 @@ function App() {
                       <td>{product.category_name || "—"}</td>
                       <td>{formatCurrency(product.price)}</td>
                       <td>{product.stock_quantity}</td>
+
                       <td>
                         <div className="product-actions">
                           <button
                             type="button"
                             className="edit-product-button"
                             onClick={() => handleEditProduct(product)}
+                            disabled={deletingProductId !== null}
                             aria-label={`Edit ${product.name}`}
                           >
                             Edit
@@ -335,9 +371,22 @@ function App() {
                             type="button"
                             className="inventory-adjust-button"
                             onClick={() => handleAdjustInventory(product)}
+                            disabled={deletingProductId !== null}
                             aria-label={`Adjust stock for ${product.name}`}
                           >
                             Adjust Stock
+                          </button>
+
+                          <button
+                            type="button"
+                            className="delete-product-button"
+                            onClick={() => handleDeleteProduct(product)}
+                            disabled={deletingProductId !== null}
+                            aria-label={`Delete ${product.name}`}
+                          >
+                            {deletingProductId === product.id
+                              ? "Deleting..."
+                              : "Delete"}
                           </button>
                         </div>
                       </td>

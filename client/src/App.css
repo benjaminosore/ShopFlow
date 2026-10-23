@@ -367,3 +367,70 @@ td[colspan] {
     align-self: flex-start;
   }
 }
+/* Product action buttons */
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.edit-product-button,
+.inventory-adjust-button,
+.delete-product-button {
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.edit-product-button {
+  border-color: #e0e3ff;
+  background: #f0f1ff;
+  color: #5058cf;
+}
+
+.edit-product-button:hover:not(:disabled) {
+  background: #e2e4ff;
+}
+
+.inventory-adjust-button {
+  border-color: #d5e7ff;
+  background: #edf5ff;
+  color: #286ab3;
+}
+
+.inventory-adjust-button:hover:not(:disabled) {
+  background: #dcecff;
+}
+
+.delete-product-button {
+  border-color: #f4c9cd;
+  background: #fff1f2;
+  color: #b42332;
+}
+
+.delete-product-button:hover:not(:disabled) {
+  border-color: #e8a5ac;
+  background: #ffe1e4;
+}
+
+.edit-product-button:focus-visible,
+.inventory-adjust-button:focus-visible,
+.delete-product-button:focus-visible {
+  outline: 3px solid rgb(85 93 224 / 20%);
+  outline-offset: 2px;
+}
+
+.edit-product-button:disabled,
+.inventory-adjust-button:disabled,
+.delete-product-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
