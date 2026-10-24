@@ -34,8 +34,9 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState("");
 
-  // Track an ongoing product deletion.
+  // Track ongoing deletions.
   const [deletingProductId, setDeletingProductId] = useState(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
 
   // Load dashboard data after successful login.
   useEffect(() => {
@@ -233,6 +234,43 @@ function App() {
       setError(err.message || "Unable to delete the product.");
     } finally {
       setDeletingProductId(null);
+    }
+  }
+
+  // Delete a category after explicit confirmation.
+  async function handleDeleteCategory(category) {
+    const confirmed = window.confirm(
+      `Delete "${category.name}" permanently? This cannot be undone. ` +
+        "Categories used by products cannot be deleted.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setDeletingCategoryId(category.id);
+
+    try {
+      await apiRequest(`/categories/${category.id}`, {
+        method: "DELETE",
+        token: session.token,
+      });
+
+      setNotice(`"${category.name}" was deleted successfully.`);
+
+      // Close the form if it was open for the deleted category.
+      if (editingCategory?.id === category.id) {
+        setShowCategoryForm(false);
+        setEditingCategory(null);
+      }
+
+      setRefreshKey((key) => key + 1);
+    } catch (err) {
+      setError(err.message || "Unable to delete the category.");
+    } finally {
+      setDeletingCategoryId(null);
     }
   }
 
@@ -486,6 +524,7 @@ function App() {
               type="button"
               className="add-product-button"
               onClick={handleAddCategory}
+              disabled={deletingCategoryId !== null}
             >
               + Add Category
             </button>
@@ -510,8 +549,22 @@ function App() {
                       type="button"
                       className="edit-product-button"
                       onClick={() => handleEditCategory(category)}
+                      disabled={deletingCategoryId !== null}
+                      aria-label={`Edit ${category.name}`}
                     >
                       Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-product-button"
+                      onClick={() => handleDeleteCategory(category)}
+                      disabled={deletingCategoryId !== null}
+                      aria-label={`Delete ${category.name}`}
+                    >
+                      {deletingCategoryId === category.id
+                        ? "Deleting..."
+                        : "Delete"}
                     </button>
                   </div>
                 </article>

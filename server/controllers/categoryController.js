@@ -3,7 +3,7 @@ import {
   getCategoryById,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
 } from "../models/categoryModel.js";
 
 export const getCategories = async (req, res) => {
@@ -12,14 +12,14 @@ export const getCategories = async (req, res) => {
 
     res.json({
       status: "success",
-      data: categories
+      data: categories,
     });
   } catch (error) {
     console.error("Get categories error:", error.message);
 
     res.status(500).json({
       status: "error",
-      message: "Failed to retrieve categories"
+      message: "Failed to retrieve categories",
     });
   }
 };
@@ -31,20 +31,20 @@ export const getCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({
         status: "error",
-        message: "Category not found"
+        message: "Category not found",
       });
     }
 
     res.json({
       status: "success",
-      data: category
+      data: category,
     });
   } catch (error) {
     console.error("Get category error:", error.message);
 
     res.status(500).json({
       status: "error",
-      message: "Failed to retrieve category"
+      message: "Failed to retrieve category",
     });
   }
 };
@@ -56,13 +56,13 @@ export const addCategory = async (req, res) => {
     if (!name || name.trim() === "") {
       return res.status(400).json({
         status: "error",
-        message: "Category name is required"
+        message: "Category name is required",
       });
     }
 
     const categoryId = await createCategory(
       name.trim(),
-      description?.trim() || null
+      description?.trim() || null,
     );
 
     res.status(201).json({
@@ -71,8 +71,8 @@ export const addCategory = async (req, res) => {
       data: {
         id: categoryId,
         name: name.trim(),
-        description: description?.trim() || null
-      }
+        description: description?.trim() || null,
+      },
     });
   } catch (error) {
     console.error("Create category error:", error.message);
@@ -80,16 +80,17 @@ export const addCategory = async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         status: "error",
-        message: "Category already exists"
+        message: "Category already exists",
       });
     }
 
     res.status(500).json({
       status: "error",
-      message: "Failed to create category"
+      message: "Failed to create category",
     });
   }
 };
+
 export const editCategory = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -97,26 +98,26 @@ export const editCategory = async (req, res) => {
     if (!name || name.trim() === "") {
       return res.status(400).json({
         status: "error",
-        message: "Category name is required"
+        message: "Category name is required",
       });
     }
 
     const affectedRows = await updateCategory(
       req.params.id,
       name.trim(),
-      description?.trim() || null
+      description?.trim() || null,
     );
 
     if (affectedRows === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Category not found"
+        message: "Category not found",
       });
     }
 
     res.json({
       status: "success",
-      message: "Category updated successfully"
+      message: "Category updated successfully",
     });
   } catch (error) {
     console.error("Update category error:", error.message);
@@ -124,13 +125,13 @@ export const editCategory = async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         status: "error",
-        message: "Category already exists"
+        message: "Category already exists",
       });
     }
 
     res.status(500).json({
       status: "error",
-      message: "Failed to update category"
+      message: "Failed to update category",
     });
   }
 };
@@ -142,20 +143,32 @@ export const removeCategory = async (req, res) => {
     if (affectedRows === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Category not found"
+        message: "Category not found",
       });
     }
 
-    res.json({
+    return res.json({
       status: "success",
-      message: "Category deleted successfully"
+      message: "Category deleted successfully",
     });
   } catch (error) {
     console.error("Delete category error:", error.message);
 
-    res.status(500).json({
+    // Handle attempts to delete categories still used by products.
+    if (
+      error.code === "ER_ROW_IS_REFERENCED_2" ||
+      error.code === "ER_ROW_IS_REFERENCED"
+    ) {
+      return res.status(409).json({
+        status: "error",
+        message:
+          "Category cannot be deleted because it is still used by one or more products.",
+      });
+    }
+
+    return res.status(500).json({
       status: "error",
-      message: "Failed to delete category"
+      message: "Failed to delete category",
     });
   }
 };
