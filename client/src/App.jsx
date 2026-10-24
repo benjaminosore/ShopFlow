@@ -3,6 +3,7 @@ import "./App.css";
 import Login from "./Login";
 import ProductForm from "./ProductForm";
 import InventoryForm from "./InventoryForm";
+import CategoryForm from "./CategoryForm";
 import { apiRequest } from "./api";
 
 function formatCurrency(amount) {
@@ -22,10 +23,14 @@ function App() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  // Product forms and dashboard refresh.
+  // Product forms, inventory form, and category form.
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [inventoryProduct, setInventoryProduct] = useState(null);
+
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+
   const [refreshKey, setRefreshKey] = useState(0);
   const [notice, setNotice] = useState("");
 
@@ -98,38 +103,96 @@ function App() {
     setRefreshKey((key) => key + 1);
   }
 
+  // Refresh after creating a category.
+  function handleCategoryCreated() {
+    setShowCategoryForm(false);
+    setEditingCategory(null);
+    setError("");
+    setNotice("Category created successfully.");
+    setRefreshKey((key) => key + 1);
+  }
+
+  // Refresh after editing a category.
+  function handleCategoryUpdated() {
+    setShowCategoryForm(false);
+    setEditingCategory(null);
+    setError("");
+    setNotice("Category updated successfully.");
+    setRefreshKey((key) => key + 1);
+  }
+
+  // Open the form for creating a new product.
   function handleAddProduct() {
-    setEditingProduct(null);
+    setShowCategoryForm(false);
+    setEditingCategory(null);
     setInventoryProduct(null);
+    setEditingProduct(null);
     setError("");
     setNotice("");
     setShowProductForm(true);
   }
 
+  // Open the form for editing an existing product.
   function handleEditProduct(product) {
     setError("");
     setNotice("");
+    setShowCategoryForm(false);
+    setEditingCategory(null);
     setInventoryProduct(null);
     setEditingProduct(product);
     setShowProductForm(true);
   }
 
+  // Open the form for adjusting product inventory.
   function handleAdjustInventory(product) {
     setError("");
     setNotice("");
+    setShowCategoryForm(false);
+    setEditingCategory(null);
     setShowProductForm(false);
     setEditingProduct(null);
     setInventoryProduct(product);
   }
 
+  // Open the form for creating a category.
+  function handleAddCategory() {
+    setError("");
+    setNotice("");
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setInventoryProduct(null);
+    setEditingCategory(null);
+    setShowCategoryForm(true);
+  }
+
+  // Open the form for editing an existing category.
+  function handleEditCategory(category) {
+    setError("");
+    setNotice("");
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setInventoryProduct(null);
+    setEditingCategory(category);
+    setShowCategoryForm(true);
+  }
+
+  // Close the product form without saving.
   function handleCancelProductForm() {
     setShowProductForm(false);
     setEditingProduct(null);
     setError("");
   }
 
+  // Close the inventory form without saving.
   function handleCancelInventoryForm() {
     setInventoryProduct(null);
+    setError("");
+  }
+
+  // Close the category form without saving.
+  function handleCancelCategoryForm() {
+    setShowCategoryForm(false);
+    setEditingCategory(null);
     setError("");
   }
 
@@ -156,7 +219,6 @@ function App() {
 
       setNotice(`"${product.name}" was deleted successfully.`);
 
-      // Close a form if it was open for this product.
       if (editingProduct?.id === product.id) {
         setShowProductForm(false);
         setEditingProduct(null);
@@ -166,22 +228,22 @@ function App() {
         setInventoryProduct(null);
       }
 
-      // Reload product data and dashboard statistics.
       setRefreshKey((key) => key + 1);
     } catch (err) {
-      setError(
-        err.message || "Unable to delete the product.",
-      );
+      setError(err.message || "Unable to delete the product.");
     } finally {
       setDeletingProductId(null);
     }
   }
 
+  // Clear frontend state when signing out.
   function handleLogout() {
     setSession(null);
     setShowProductForm(false);
     setEditingProduct(null);
     setInventoryProduct(null);
+    setShowCategoryForm(false);
+    setEditingCategory(null);
     setNotice("");
     setError("");
     setProducts([]);
@@ -208,6 +270,7 @@ function App() {
       .includes(search.toLowerCase()),
   );
 
+  // Display the login page until an administrator signs in.
   if (!session) {
     return <Login onLogin={setSession} />;
   }
@@ -254,6 +317,7 @@ function App() {
           </p>
         )}
 
+        {/* Create or edit product details. */}
         {showProductForm && (
           <ProductForm
             key={editingProduct?.id ?? "new-product"}
@@ -266,6 +330,7 @@ function App() {
           />
         )}
 
+        {/* Adjust inventory separately from product details. */}
         {inventoryProduct && (
           <InventoryForm
             key={inventoryProduct.id}
@@ -273,6 +338,18 @@ function App() {
             product={inventoryProduct}
             onInventoryAdjusted={handleInventoryAdjusted}
             onCancel={handleCancelInventoryForm}
+          />
+        )}
+
+        {/* Create or edit category details. */}
+        {showCategoryForm && (
+          <CategoryForm
+            key={editingCategory?.id ?? "new-category"}
+            token={session.token}
+            category={editingCategory}
+            onCategoryCreated={handleCategoryCreated}
+            onCategoryUpdated={handleCategoryUpdated}
+            onCancel={handleCancelCategoryForm}
           />
         )}
 
@@ -399,7 +476,20 @@ function App() {
         </section>
 
         <section className="panel" id="categories">
-          <h2>Product Categories</h2>
+          <div className="panel-header">
+            <div>
+              <h2>Product Categories</h2>
+              <p>Manage the categories used by your products.</p>
+            </div>
+
+            <button
+              type="button"
+              className="add-product-button"
+              onClick={handleAddCategory}
+            >
+              + Add Category
+            </button>
+          </div>
 
           {loading ? (
             <p>Loading categories...</p>
@@ -410,9 +500,20 @@ function App() {
               {categories.map((category) => (
                 <article className="category-card" key={category.id}>
                   <h3>{category.name}</h3>
+
                   <p>
                     {category.description || "No description available."}
                   </p>
+
+                  <div className="product-actions">
+                    <button
+                      type="button"
+                      className="edit-product-button"
+                      onClick={() => handleEditCategory(category)}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
