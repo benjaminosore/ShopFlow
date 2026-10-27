@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "test": "npm run test:inventory && npm run test:categories:auth && npm run test:categories:admin",
+  "test:inventory": "node test-product-inventory.js",
+  "test:categories:auth": "node test-categories-auth.js",
+  "test:categories:admin": "node test-admin-categories.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

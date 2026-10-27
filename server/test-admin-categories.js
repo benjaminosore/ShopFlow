@@ -88,7 +88,18 @@ async function runTest(label, request, expectedStatus) {
     }
 
     console.log("HTTP status:", response.status);
-    console.log("Response:", JSON.stringify(data));
+    const safeData =
+  data && typeof data === "object" && data.data?.token
+    ? {
+        ...data,
+        data: {
+          ...data.data,
+          token: "[REDACTED]",
+        },
+      }
+    : data;
+
+console.log("Response:", JSON.stringify(safeData));
 
     if (response.status === expectedStatus) {
       console.log(`PASS: ${label}`);
