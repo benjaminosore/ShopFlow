@@ -4,7 +4,7 @@ import { stdin as input, stdout as output } from "node:process";
 const rl = readline.createInterface({ input, output });
 
 const password = await rl.question(
-  "Enter the customer test-account password: "
+  "Enter the customer test-account password (hidden): "
 );
 
 rl.close();
@@ -48,7 +48,9 @@ if (!loginResponse.ok || !loginData.data?.token) {
             product_id: 2,
             quantity: 1
           }
-        ]
+        ],
+        customer_phone: "0712345678",
+        shipping_address: "ShopFlow authorization test address"
       })
     }
   );
@@ -73,9 +75,11 @@ if (!loginResponse.ok || !loginData.data?.token) {
     console.log(
       "\nCHECK: The order was created, but ownership needs verification."
     );
+    process.exitCode = 1;
   } else {
     console.log(
-      "\nCHECK: Order creation did not return the expected HTTP 201."
+      "\nFAIL: Order creation did not return the expected HTTP 201."
     );
+    process.exitCode = 1;
   }
 }

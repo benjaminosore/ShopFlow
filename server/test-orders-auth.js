@@ -1,44 +1,105 @@
-import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-const rl = readline.createInterface({ input, output });
+function askHidden(question) {
+  return new Promise((resolve, reject) => {
+    if (!input.isTTY || !output.isTTY) {
+      reject(
+        new Error("Run this test directly in an interactive terminal."),
+      );
+      return;
+    }
 
-const password = await rl.question("Enter the customer test-account password: ");
-rl.close();
+    output.write(question);
+    input.setRawMode(true);
+    input.resume();
 
-const loginResponse = await fetch("http://localhost:5000/api/auth/login", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: "benjamin.auth@shopflow.local",
-    password
-  })
-});
+    let password = "";
 
-const loginData = await loginResponse.json();
+    const cleanup = () => {
+      input.setRawMode(false);
+      input.pause();
+      input.removeListener("data", onData);
+    };
 
-if (!loginResponse.ok || !loginData.data?.token) {
-  console.log("\nCustomer login failed. Check the test account credentials.");
-  process.exit(1);
+    const onData = (key) => {
+      const character = key.toString();
+
+      if (character === "\u0003") {
+        cleanup();
+        output.write("\n");
+        reject(new Error("Password prompt cancelled."));
+        return;
+      }
+
+      if (character === "\r" || character === "\n") {
+        cleanup();
+        output.write("\n");
+        resolve(password);
+        return;
+      }
+
+      if (character === "\u007f" || character === "\b") {
+        password = password.slice(0, -1);
+        return;
+      }
+
+      if (!character.startsWith("\u001b")) {
+        password += character;
+      }
+    };
+
+    input.on("data", onData);
+  });
 }
 
-console.log("\nCustomer login successful!");
+const baseUrl = "http://localhost:5000/api";
 
-const ordersResponse = await fetch("http://localhost:5000/api/orders", {
-  headers: {
-    Authorization: `Bearer ${loginData.data.token}`
+try {
+  const password = await askHidden(
+    "Enter the customer test-account password (hidden): ",
+  );
+
+  const loginResponse = await fetch(`${baseUrl}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: "benjamin.auth@shopflow.local",
+      password,
+    }),
+  });
+
+  const loginData = await loginResponse.json();
+
+  if (!loginResponse.ok || !loginData.data?.token) {
+    console.error(
+      "\nFAIL: Customer login failed. Check the test credentials.",
+    );
+    process.exitCode = 1;
+  } else {
+    console.log("\nCustomer login successful!");
+
+    const ordersResponse = await fetch(`${baseUrl}/orders`, {
+      headers: {
+        Authorization: `Bearer ${loginData.data.token}`,
+      },
+    });
+
+    console.log("\n--- Customer Orders Authorization Test ---");
+    console.log("Endpoint: GET /api/orders");
+    console.log("HTTP status:", ordersResponse.status);
+
+    if (ordersResponse.status === 403) {
+      console.log("\nPASS: Customers cannot view all orders.");
+    } else {
+      console.error(
+        `\nFAIL: Expected HTTP 403, received ${ordersResponse.status}.`,
+      );
+      process.exitCode = 1;
+    }
   }
-});
-
-console.log("\n--- Customer Orders Authorization Test ---");
-console.log("Endpoint: GET /api/orders");
-console.log("HTTP status:", ordersResponse.status);
-console.log("Response:", await ordersResponse.text());
-
-if (ordersResponse.status === 403) {
-  console.log("\nPASS: Customers cannot view all orders.");
-} else {
-  console.log("\nCHECK: The result differs from the expected HTTP 403.");
+} catch (error) {
+  console.error("\nTest failed:", error.message);
+  process.exitCode = 1;
 }

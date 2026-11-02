@@ -1,4 +1,5 @@
 import pool from "../config/database.js";
+
 import {
   createOrder,
   createOrderItem,
@@ -8,6 +9,7 @@ import {
   deleteOrder
 } from "../models/orderModel.js";
 
+// Get all orders (admin access is enforced by the route)
 export const getOrders = async (req, res) => {
   try {
     const orders = await getAllOrders();
@@ -26,6 +28,7 @@ export const getOrders = async (req, res) => {
   }
 };
 
+// Get one order
 export const getOrder = async (req, res) => {
   try {
     const order = await getOrderById(req.params.id);
@@ -63,12 +66,19 @@ export const getOrder = async (req, res) => {
   }
 };
 
+// Create a new order
 export const addOrder = async (req, res) => {
-  const { items } = req.body;
+  const {
+    items,
+    customer_phone,
+    shipping_address,
+    delivery_notes
+  } = req.body;
 
   // The authenticated user's ID determines order ownership.
   const userId = Number(req.user.id);
 
+  // Validate authenticated user.
   if (!Number.isInteger(userId) || userId <= 0) {
     return res.status(401).json({
       status: "error",
@@ -76,6 +86,51 @@ export const addOrder = async (req, res) => {
     });
   }
 
+  // Validate customer phone number.
+  if (
+    typeof customer_phone !== "string" ||
+    !customer_phone.trim() ||
+    customer_phone.trim().length > 20
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "A valid customer phone number is required (maximum 20 characters)"
+    });
+  }
+
+  // Validate shipping address.
+  if (
+    typeof shipping_address !== "string" ||
+    !shipping_address.trim() ||
+    shipping_address.trim().length > 2000
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "A valid shipping address is required"
+    });
+  }
+
+  // Validate optional delivery notes.
+  if (
+    delivery_notes !== undefined &&
+    delivery_notes !== null &&
+    typeof delivery_notes !== "string"
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "Delivery notes must be text"
+    });
+  }
+
+  const customerPhone = customer_phone.trim();
+  const shippingAddress = shipping_address.trim();
+
+  const deliveryNotes =
+    typeof delivery_notes === "string" && delivery_notes.trim()
+      ? delivery_notes.trim()
+      : null;
+
+  // Validate order items.
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
       status: "error",
@@ -83,12 +138,14 @@ export const addOrder = async (req, res) => {
     });
   }
 
-  const connection = await pool.getConnection();
+  let connection;
 
   try {
+    connection = await pool.getConnection();
+
     await connection.beginTransaction();
 
-    // Verify authenticated user exists
+    // Verify the authenticated user exists.
     const [users] = await connection.query(
       "SELECT id FROM users WHERE id = ?",
       [userId]
@@ -104,9 +161,11 @@ export const addOrder = async (req, res) => {
     }
 
     let totalAmount = 0;
-    const orderItems = [];
 
-    // Validate products and stock
+    const orderItems = [];
+    const quantitiesByProduct = new Map();
+
+    // Step 1: Validate items and combine duplicate product IDs.
     for (const item of items) {
       const productId = Number(item.product_id);
       const quantity = Number(item.quantity);
@@ -129,6 +188,29 @@ export const addOrder = async (req, res) => {
         });
       }
 
+      const combinedQuantity =
+        (quantitiesByProduct.get(productId) || 0) + quantity;
+
+      if (!Number.isSafeInteger(combinedQuantity)) {
+        await connection.rollback();
+
+        return res.status(400).json({
+          status: "error",
+          message: "Combined product quantity is too large"
+        });
+      }
+
+      quantitiesByProduct.set(productId, combinedQuantity);
+    }
+
+    // Step 2: Lock products in a consistent order and validate available stock.
+    const sortedProductIds = [...quantitiesByProduct.keys()].sort(
+      (a, b) => a - b
+    );
+
+    for (const productId of sortedProductIds) {
+      const quantity = quantitiesByProduct.get(productId);
+
       const [products] = await connection.query(
         `SELECT id, name, price, stock_quantity
          FROM products
@@ -148,7 +230,7 @@ export const addOrder = async (req, res) => {
 
       const product = products[0];
 
-      if (product.stock_quantity < quantity) {
+      if (Number(product.stock_quantity) < quantity) {
         await connection.rollback();
 
         return res.status(409).json({
@@ -159,6 +241,10 @@ export const addOrder = async (req, res) => {
 
       const subtotal = Number(product.price) * quantity;
 
+      if (!Number.isFinite(subtotal)) {
+        throw new Error(`Invalid price for product ${productId}`);
+      }
+
       totalAmount += subtotal;
 
       orderItems.push({
@@ -168,14 +254,17 @@ export const addOrder = async (req, res) => {
       });
     }
 
-    // Create the order for the authenticated user.
+    // Step 3: Create the order with customer delivery information.
     const orderId = await createOrder(
       connection,
       userId,
-      totalAmount
+      totalAmount,
+      customerPhone,
+      shippingAddress,
+      deliveryNotes
     );
 
-    // Create order items and reduce stock
+    // Step 4: Save order items and reduce stock.
     for (const item of orderItems) {
       await createOrderItem(
         connection,
@@ -185,16 +274,25 @@ export const addOrder = async (req, res) => {
         item.unitPrice
       );
 
-      await connection.query(
+      const [stockUpdate] = await connection.query(
         `UPDATE products
          SET stock_quantity = stock_quantity - ?
-         WHERE id = ?`,
-        [item.quantity, item.productId]
+         WHERE id = ?
+           AND stock_quantity >= ?`,
+        [item.quantity, item.productId, item.quantity]
       );
+
+      if (stockUpdate.affectedRows !== 1) {
+        throw new Error(
+          `Stock update failed for product ${item.productId}`
+        );
+      }
     }
 
+    // Step 5: Commit the transaction.
     await connection.commit();
 
+    // Retrieve the completed order, including delivery details.
     const order = await getOrderById(orderId);
 
     res.status(201).json({
@@ -202,20 +300,31 @@ export const addOrder = async (req, res) => {
       message: "Order created successfully",
       data: order
     });
-  } catch (error) {
-    await connection.rollback();
 
-    console.error("Create order error:", error.message);
+  } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("Order rollback error:", rollbackError.message);
+      }
+    }
+
+    console.error("Create order error:", error);
 
     res.status(500).json({
       status: "error",
       message: "Failed to create order"
     });
+
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
+// Update order status (admin access is enforced by the route)
 export const editOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -261,6 +370,7 @@ export const editOrderStatus = async (req, res) => {
   }
 };
 
+// Delete an order (admin access is enforced by the route)
 export const removeOrder = async (req, res) => {
   try {
     const affectedRows = await deleteOrder(req.params.id);
