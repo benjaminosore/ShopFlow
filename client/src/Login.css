@@ -1,4 +1,5 @@
 /* Login page layout */
+
 .login-page {
   display: flex;
   min-height: 100vh;
@@ -12,9 +13,11 @@
       transparent 35%
     ),
     #f4f6fb;
+  font-family: Arial, sans-serif;
 }
 
 /* Login card */
+
 .login-card {
   width: 100%;
   max-width: 440px;
@@ -26,6 +29,7 @@
 }
 
 /* Brand */
+
 .login-brand {
   display: flex;
   align-items: center;
@@ -60,6 +64,7 @@
 }
 
 /* Heading */
+
 .login-heading {
   margin-bottom: 28px;
 }
@@ -87,6 +92,7 @@
 }
 
 /* Form fields */
+
 .login-card form {
   display: grid;
   gap: 19px;
@@ -103,7 +109,8 @@
   font-weight: 700;
 }
 
-.login-field input {
+.login-field input,
+.login-field select {
   width: 100%;
   min-height: 46px;
   padding: 12px 13px;
@@ -113,19 +120,37 @@
   background: #ffffff;
   color: #27344b;
   font-size: 13px;
+  font-family: inherit;
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .login-field input::placeholder {
   color: #a3acbc;
 }
 
-.login-field input:focus {
+/* Input focus */
+
+.login-field input:focus,
+.login-field select:focus {
   border-color: #666ce5;
   box-shadow: 0 0 0 3px rgb(102 108 229 / 11%);
 }
+
+/* Account type dropdown */
+
+.login-field select {
+  cursor: pointer;
+}
+
+.login-field select:disabled {
+  background: #f6f7fa;
+  cursor: wait;
+}
+
+/* Disabled inputs */
 
 .login-field input:disabled {
   background: #f6f7fa;
@@ -133,6 +158,7 @@
 }
 
 /* Login error */
+
 .login-error {
   padding: 12px;
   border: 1px solid #f5c5ca;
@@ -144,6 +170,7 @@
 }
 
 /* Submit button */
+
 .login-button {
   width: 100%;
   min-height: 46px;
@@ -154,14 +181,18 @@
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
   transition:
     background 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-1px);
   background: #454dc9;
+  box-shadow: 0 6px 15px rgb(85 93 224 / 20%);
 }
 
 .login-button:disabled {
@@ -169,7 +200,37 @@
   cursor: wait;
 }
 
+/* Customer registration link */
+
+.login-register {
+  margin: 20px 0 0;
+  color: #8590a4;
+  font-size: 12px;
+  text-align: center;
+}
+
+.login-register button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #555de0;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.login-register button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.login-register button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* Footer */
+
 .login-footer {
   margin: 25px 0 0;
   padding-top: 19px;
@@ -180,7 +241,32 @@
   text-align: center;
 }
 
+/* Back to welcome button */
+
+.login-back-button {
+  display: block;
+  margin: 16px auto 0;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #6268df;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.login-back-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.login-back-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* Mobile screens */
+
 @media (max-width: 480px) {
   .login-page {
     padding: 18px 12px;
