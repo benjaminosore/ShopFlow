@@ -120,7 +120,6 @@ function App() {
   // Load all orders for the administrator.
   useEffect(() => {
     if (!session?.token || session.user?.role !== "admin") {
-      setOrders([]);
       return;
     }
 
@@ -293,6 +292,11 @@ function App() {
     }
 
     setError("");
+    setOrders([]);
+    setOrdersError("");
+    setOrdersLoading(false);
+    setSelectedOrder(null);
+
     setSession(adminSession);
     setScreen("dashboard");
   }
@@ -305,6 +309,11 @@ function App() {
     }
 
     setError("");
+    setOrders([]);
+    setOrdersError("");
+    setOrdersLoading(false);
+    setSelectedOrder(null);
+
     setSearch("");
     setSelectedCategory("all");
     setCart([]);
@@ -768,6 +777,7 @@ function App() {
 
     setOrders([]);
     setOrdersError("");
+    setOrdersLoading(false);
     setSelectedOrder(null);
 
     setSearch("");
