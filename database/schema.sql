@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS orders (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
+    customer_phone VARCHAR(20) NOT NULL,
+    shipping_address TEXT NOT NULL,
+    delivery_notes TEXT DEFAULT NULL,
     status ENUM(
         'pending',
         'processing',
