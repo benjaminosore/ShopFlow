@@ -1,13 +1,58 @@
-import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-const rl = readline.createInterface({ input, output });
+function askHidden(question) {
+  return new Promise((resolve, reject) => {
+    if (!input.isTTY || !output.isTTY) {
+      reject(new Error("Run this test directly in an interactive terminal."));
+      return;
+    }
 
-const password = await rl.question(
-  "Enter the customer test-account password: "
+    output.write(question);
+    input.setRawMode(true);
+    input.resume();
+
+    let password = "";
+
+    const cleanup = () => {
+      input.setRawMode(false);
+      input.pause();
+      input.removeListener("data", onData);
+    };
+
+    const onData = (key) => {
+      const character = key.toString();
+
+      if (character === "\u0003") {
+        cleanup();
+        output.write("\n");
+        reject(new Error("Password prompt cancelled."));
+        return;
+      }
+
+      if (character === "\r" || character === "\n") {
+        cleanup();
+        output.write("\n");
+        resolve(password);
+        return;
+      }
+
+      if (character === "\u007f" || character === "\b") {
+        password = password.slice(0, -1);
+        return;
+      }
+
+      if (!character.startsWith("\u001b")) {
+        password += character;
+      }
+    };
+
+    input.on("data", onData);
+  });
+}
+
+const password = await askHidden(
+  "Enter the customer test-account password (hidden): "
 );
-
-rl.close();
 
 const BASE_URL = "http://localhost:5000/api";
 

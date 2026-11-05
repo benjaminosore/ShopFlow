@@ -1,85 +1,130 @@
-import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-const rl = readline.createInterface({ input, output });
+function askHidden(question) {
+  return new Promise((resolve, reject) => {
+    if (!input.isTTY || !output.isTTY) {
+      reject(
+        new Error("Run this test directly in an interactive terminal.")
+      );
+      return;
+    }
 
-const password = await rl.question(
-  "Enter the customer test-account password (hidden): "
-);
+    output.write(question);
+    input.setRawMode(true);
+    input.resume();
 
-rl.close();
+    let password = "";
 
-// Log in as customer ID 2.
-const loginResponse = await fetch(
-  "http://localhost:5000/api/auth/login",
-  {
+    const cleanup = () => {
+      input.setRawMode(false);
+      input.pause();
+      input.removeListener("data", onData);
+    };
+
+    const onData = (key) => {
+      const character = key.toString();
+
+      if (character === "\u0003") {
+        cleanup();
+        output.write("\n");
+        reject(new Error("Password prompt cancelled."));
+        return;
+      }
+
+      if (character === "\r" || character === "\n") {
+        cleanup();
+        output.write("\n");
+        resolve(password);
+        return;
+      }
+
+      if (character === "\u007f" || character === "\b") {
+        password = password.slice(0, -1);
+        return;
+      }
+
+      if (!character.startsWith("\u001b")) {
+        password += character;
+      }
+    };
+
+    input.on("data", onData);
+  });
+}
+
+const baseUrl = "http://localhost:5000/api";
+
+try {
+  const password = await askHidden(
+    "Enter the customer test-account password (hidden): "
+  );
+
+  // 1. Authenticate as the test customer.
+  const loginResponse = await fetch(`${baseUrl}/auth/login`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       email: "benjamin.auth@shopflow.local",
-      password
-    })
+      password,
+    }),
+  });
+
+  const loginData = await loginResponse.json();
+
+  if (!loginResponse.ok || !loginData.data?.token) {
+    throw new Error("Customer login failed. Check the test credentials.");
   }
-);
 
-const loginData = await loginResponse.json();
+  const token = loginData.data.token;
+  const customerId = Number(loginData.data.user.id);
 
-if (!loginResponse.ok || !loginData.data?.token) {
-  console.log("Customer login failed. Check the test credentials.");
-  process.exitCode = 1;
-} else {
-  console.log("Customer login successful!");
+  console.log("\nCustomer login successful!");
 
-  // Deliberately submit user_id 1 to test ownership protection.
-  const orderResponse = await fetch(
-    "http://localhost:5000/api/orders",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${loginData.data.token}`
-      },
-      body: JSON.stringify({
-        user_id: 1,
-        items: [
-          {
-            product_id: 2,
-            quantity: 1
-          }
-        ],
-        customer_phone: "0712345678",
-        shipping_address: "ShopFlow authorization test address"
-      })
-    }
-  );
+  // 2. Deliberately submit a different user_id to test ownership protection.
+  const orderResponse = await fetch(`${baseUrl}/orders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      user_id: 1,
+      items: [
+        {
+          product_id: 2,
+          quantity: 1,
+        },
+      ],
+      customer_phone: "0712345678",
+      shipping_address: "ShopFlow authorization test address",
+    }),
+  });
 
   const orderData = await orderResponse.json();
 
   console.log("\n--- Order Creation Authorization Test ---");
+  console.log("Authenticated customer ID:", customerId);
   console.log("HTTP status:", orderResponse.status);
   console.log("Response:", JSON.stringify(orderData, null, 2));
 
   if (
     orderResponse.status === 201 &&
-    Number(orderData.data?.user_id) === 2
+    Number(orderData.data?.user_id) === customerId
   ) {
     console.log(
-      "\nPASS: The order belongs to the authenticated customer (ID 2)."
+      "\nPASS: The order belongs to the authenticated customer."
     );
     console.log(
       "PASS: The submitted user_id did not override authenticated ownership."
     );
-  } else if (orderResponse.status === 201) {
-    console.log(
-      "\nCHECK: The order was created, but ownership needs verification."
-    );
-    process.exitCode = 1;
   } else {
-    console.log(
-      "\nFAIL: Order creation did not return the expected HTTP 201."
+    throw new Error(
+      "Order creation or authenticated ownership verification failed."
     );
-    process.exitCode = 1;
   }
+} catch (error) {
+  console.error("\nTest failed:", error.message);
+  process.exitCode = 1;
 }
