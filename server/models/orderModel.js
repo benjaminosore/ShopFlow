@@ -122,25 +122,127 @@ export const getOrderById = async (id) => {
   };
 };
 
-// Update an order's status
-export const updateOrderStatus = async (id, status) => {
-  const [result] = await pool.query(
-    `UPDATE orders
-     SET status = ?
-     WHERE id = ?`,
-    [status, id]
+// Retrieve orders belonging to one customer
+export const getOrdersByUserId = async (userId) => {
+  const [rows] = await pool.query(
+    `
+      SELECT
+        o.id,
+        o.user_id,
+        u.name AS customer_name,
+        u.email AS customer_email,
+        o.customer_phone,
+        o.shipping_address,
+        o.delivery_notes,
+        o.status,
+        o.total_amount,
+        o.created_at,
+        o.updated_at
+      FROM orders o
+      INNER JOIN users u
+        ON o.user_id = u.id
+      WHERE o.user_id = ?
+      ORDER BY o.id DESC
+    `,
+    [userId]
+  );
+
+  return rows;
+};
+
+// Lock an order during a transaction
+export const getOrderForUpdate = async (connection, orderId) => {
+  const [rows] = await connection.query(
+    `
+      SELECT
+        id,
+        user_id,
+        status
+      FROM orders
+      WHERE id = ?
+      FOR UPDATE
+    `,
+    [orderId]
+  );
+
+  return rows[0] || null;
+};
+
+// Retrieve the products and quantities belonging to an order
+export const getOrderItemsForUpdate = async (
+  connection,
+  orderId
+) => {
+  const [rows] = await connection.query(
+    `
+      SELECT
+        product_id,
+        quantity
+      FROM order_items
+      WHERE order_id = ?
+      ORDER BY product_id ASC
+    `,
+    [orderId]
+  );
+
+  return rows;
+};
+
+// Lock a product's inventory record during a transaction
+export const getProductForUpdate = async (
+  connection,
+  productId
+) => {
+  const [rows] = await connection.query(
+    `
+      SELECT
+        id,
+        stock_quantity
+      FROM products
+      WHERE id = ?
+      FOR UPDATE
+    `,
+    [productId]
+  );
+
+  return rows[0] || null;
+};
+
+// Restore product stock inside the current transaction
+export const restoreProductStock = async (
+  connection,
+  productId,
+  quantity
+) => {
+  const [result] = await connection.query(
+    `
+      UPDATE products
+      SET stock_quantity = stock_quantity + ?
+      WHERE id = ?
+    `,
+    [quantity, productId]
   );
 
   return result.affectedRows;
 };
 
-// Delete an order
-export const deleteOrder = async (id) => {
-  const [result] = await pool.query(
-    `DELETE FROM orders
-     WHERE id = ?`,
-    [id]
+// Update an order's status inside the current transaction
+export const updateOrderStatusInTransaction = async (
+  connection,
+  orderId,
+  status,
+  previousStatus
+) => {
+  const [result] = await connection.query(
+    `
+      UPDATE orders
+      SET status = ?
+      WHERE id = ?
+        AND status = ?
+    `,
+    [status, orderId, previousStatus]
   );
 
   return result.affectedRows;
 };
+

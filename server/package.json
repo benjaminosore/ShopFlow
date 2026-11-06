@@ -1,19 +1,22 @@
+
 {
   "name": "server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
-  "test": "npm run test:inventory && npm run test:categories:auth && npm run test:categories:admin && npm run test:orders:auth && npm run test:admin:orders && npm run test:order:creation && npm run test:order:ownership && npm run test:duplicate:stock",
-  "test:inventory": "node test-product-inventory.js",
-  "test:categories:auth": "node test-categories-auth.js",
-  "test:categories:admin": "node test-admin-categories.js",
-  "test:orders:auth": "node test-orders-auth.js",
-  "test:admin:orders": "node test-admin-orders-auth.js",
-  "test:order:creation": "node test-order-creation.js",
-  "test:order:ownership": "node test-order-ownership.js",
-  "test:duplicate:stock": "node test-duplicate-product-stock.js"
-},
+  "scripts": {
+    "test": "npm run test:inventory && npm run test:categories:auth && npm run test:categories:admin && npm run test:orders:auth && npm run test:customer:orders && npm run test:admin:orders && npm run test:order:creation && npm run test:order:ownership && npm run test:duplicate:stock && npm run test:order:cancellation",
+    "test:inventory": "node test-product-inventory.js",
+    "test:categories:auth": "node test-categories-auth.js",
+    "test:categories:admin": "node test-admin-categories.js",
+    "test:orders:auth": "node test-orders-auth.js",
+    "test:customer:orders": "node test-customer-orders.js",
+    "test:admin:orders": "node test-admin-orders-auth.js",
+    "test:order:creation": "node test-order-creation.js",
+    "test:order:ownership": "node test-order-ownership.js",
+    "test:duplicate:stock": "node test-duplicate-product-stock.js",
+    "test:order:cancellation": "node test-order-cancellation.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

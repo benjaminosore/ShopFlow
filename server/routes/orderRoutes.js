@@ -2,10 +2,11 @@ import express from "express";
 
 import {
   getOrders,
+  getMyOrders,
   getOrder,
   addOrder,
-  editOrderStatus,
-  removeOrder
+  cancelOrder,
+  editOrderStatus
 } from "../controllers/orderController.js";
 
 import {
@@ -23,6 +24,13 @@ router.get(
   getOrders
 );
 
+// Authenticated customers: view their own orders
+router.get(
+  "/mine",
+  authenticate,
+  getMyOrders
+);
+
 // Authenticated users: ownership check handled by controller
 router.get(
   "/:id",
@@ -37,20 +45,19 @@ router.post(
   addOrder
 );
 
+// Customers and admins: cancel orders according to their permissions
+router.patch(
+  "/:id/cancel",
+  authenticate,
+  cancelOrder
+);
+
 // Admin-only: update order status
 router.put(
   "/:id",
   authenticate,
   authorizeRoles("admin"),
   editOrderStatus
-);
-
-// Admin-only: delete orders
-router.delete(
-  "/:id",
-  authenticate,
-  authorizeRoles("admin"),
-  removeOrder
 );
 
 export default router;
